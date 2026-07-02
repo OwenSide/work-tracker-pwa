@@ -8,4 +8,5 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  base: '/work-tracker-pwa/', // ОБЯЗАТЕЛЬНО: укажи тут точное имя твоего репозитория
 })
