@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* Убираем подсветку при тапе на мобилках для ощущения нативного PWA */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  overscroll-behavior-y: none; /* Предотвращает "резинку" при скролле на телефонах */
+}
