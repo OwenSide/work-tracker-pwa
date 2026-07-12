@@ -20,22 +20,19 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     return `${hours} ч ${minutes} мин`;
   };
 
-  // Удаление ОДНОЙ смены (для текущего месяца)
   const handleDeleteShift = (id) => {
     if (window.confirm('Точно удалить эту смену?')) {
       setShifts(shifts.filter(shift => shift.id !== id));
     }
   };
 
-  // Удаление ЦЕЛОГО МЕСЯЦА (для архива)
   const handleDeleteMonth = (e, monthId, monthLabel) => {
-    e.stopPropagation(); // Чтобы при клике на корзину не открывался/закрывался список
+    e.stopPropagation();
     if (window.confirm(`Точно удалить весь архив за ${monthLabel}?\nБудут безвозвратно удалены все смены этого месяца.`)) {
       const [year, month] = monthId.split('-').map(Number);
       
       const updatedShifts = shifts.filter(shift => {
         const d = new Date(shift.startTime);
-        // Оставляем только те смены, которые НЕ совпадают с удаляемым годом и месяцем
         return !(d.getFullYear() === year && d.getMonth() === month);
       });
       
@@ -44,7 +41,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     }
   };
 
-  // Группировка смен
   const { currentMonthData, archiveMonths } = useMemo(() => {
     const now = new Date();
     const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
@@ -84,6 +80,13 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   const handleAddManualShift = () => {
     if (!manualDate || !manualStartTime || !manualEndTime) return;
     const start = new Date(`${manualDate}T${manualStartTime}`);
+    
+    // ПРОВЕРКА НА БУДУЩЕЕ
+    if (start > new Date()) {
+      alert('Нельзя добавить смену из будущего! Выберите корректное время.');
+      return;
+    }
+
     let end = new Date(`${manualDate}T${manualEndTime}`);
     if (end < start) end.setDate(end.getDate() + 1);
 
@@ -100,7 +103,10 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     setManualEndTime('');
   };
 
-  // Отрисовка одной карточки смены (hideDelete = true скроет корзину)
+  // Вычисляем сегодняшнюю дату в формате YYYY-MM-DD для ограничения календаря
+  const today = new Date();
+  const maxDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   const renderShiftItem = (shift, hideDelete = false) => (
     <div key={shift.id} className="bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-5 rounded-3xl border border-white/5 flex flex-col gap-3 group">
       <div className="flex justify-between items-center">
@@ -138,7 +144,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
 
   return (
     <div className="p-6 h-full flex flex-col">
-      {/* Карточка Итогов */}
       <div className="flex justify-between items-end mb-6 bg-white/[0.02] p-5 rounded-3xl border border-white/5 relative overflow-hidden">
         <div className="relative z-10">
           <h2 className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">
@@ -163,7 +168,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
         <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Переключатель вкладок */}
       <div className="flex bg-black/40 p-1.5 rounded-2xl mb-6 border border-white/5">
         <button
           onClick={() => setActiveTab('current')}
@@ -185,7 +189,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
         </button>
       </div>
 
-      {/* Контент: Текущий месяц */}
       {activeTab === 'current' && (
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 flex flex-col min-h-0">
           <div className="flex justify-between items-center mb-4 px-1">
@@ -201,7 +204,15 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
           {isManualEntryOpen && (
             <div className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20 mb-4 flex flex-col gap-4">
               <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Добавить вручную</h4>
-              <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 w-full" style={{colorScheme: 'dark'}} />
+              {/* ДОБАВЛЕН АТРИБУТ max */}
+              <input 
+                type="date" 
+                max={maxDateString}
+                value={manualDate} 
+                onChange={(e) => setManualDate(e.target.value)} 
+                className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 w-full" 
+                style={{colorScheme: 'dark'}} 
+              />
               <div className="flex gap-3 items-center">
                 <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
                 <ArrowRight size={16} className="text-gray-500" />
@@ -220,13 +231,12 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
                 <p className="text-sm tracking-wide">В этом месяце смен пока нет</p>
               </div>
             ) : (
-              currentMonthData.shifts.map(shift => renderShiftItem(shift, false)) // false = показываем корзину
+              currentMonthData.shifts.map(shift => renderShiftItem(shift, false))
             )}
           </div>
         </motion.div>
       )}
 
-      {/* Контент: Архив */}
       {activeTab === 'archive' && (
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 overflow-y-auto space-y-4 pb-24 no-scrollbar">
           {archiveMonths.length === 0 ? (
@@ -238,15 +248,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             archiveMonths.map(month => (
               <div key={month.id} className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
                 <div className="w-full flex flex-col hover:bg-white/[0.02] transition-colors relative">
-                  
-                  {/* Шапка карточки месяца (разделена на кликабельную зону раскрытия и кнопки) */}
                   <div className="flex justify-between items-start w-full p-5">
-                    
-                    {/* Левая часть (кликабельная - раскрывает список) */}
-                    <div 
-                      className="flex-1 cursor-pointer flex flex-col gap-3" 
-                      onClick={() => setExpandedArchive(expandedArchive === month.id ? null : month.id)}
-                    >
+                    <div className="flex-1 cursor-pointer flex flex-col gap-3" onClick={() => setExpandedArchive(expandedArchive === month.id ? null : month.id)}>
                       <span className="text-white font-semibold text-lg">{month.label}</span>
                       <div className="flex gap-4">
                         <div className="flex flex-col">
@@ -262,14 +265,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Правая часть (кнопка удаления и галочка) */}
                     <div className="flex items-center gap-1 ml-4 mt-1">
-                      <button 
-                        onClick={(e) => handleDeleteMonth(e, month.id, month.label)}
-                        className="text-gray-600 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all z-10"
-                        title="Удалить весь месяц"
-                      >
+                      <button onClick={(e) => handleDeleteMonth(e, month.id, month.label)} className="text-gray-600 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all z-10" title="Удалить весь месяц">
                         <Trash2 size={18} />
                       </button>
                       <div className="p-2 text-gray-400 pointer-events-none">
@@ -277,20 +274,12 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
                       </div>
                     </div>
                   </div>
-
                 </div>
-                
-                {/* Раскрывающийся список смен архива */}
                 <AnimatePresence>
                   {expandedArchive === month.id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="border-t border-white/5 bg-black/20"
-                    >
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 bg-black/20">
                       <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto no-scrollbar">
-                        {month.shifts.map(shift => renderShiftItem(shift, true))} {/* true = скрываем корзину внутри списка */}
+                        {month.shifts.map(shift => renderShiftItem(shift, true))}
                       </div>
                     </motion.div>
                   )}
