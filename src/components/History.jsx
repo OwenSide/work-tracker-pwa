@@ -48,7 +48,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   };
 
   const handleEditClick = (shift) => {
-    setIsManualEntryOpen(false); // Закрываем ручной ввод, если открыто редактирование
+    setIsManualEntryOpen(false);
 
     const startD = new Date(shift.startTime);
     const endD = new Date(shift.endTime);
@@ -136,21 +136,29 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Редактирование</h4>
             <button onClick={() => setEditingShiftId(null)} className="text-gray-400 hover:text-white transition-colors"><X size={18} /></button>
           </div>
-          <input type="date" max={maxDateString} value={editDate} onChange={(e) => setEditDate(e.target.value)} className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 w-full text-sm" style={{colorScheme: 'dark'}} />
+          
+          {/* ИЗМЕНЕНИЕ ТУТ: Добавлены классы block min-w-0 max-w-full */}
+          <input 
+            type="date" max={maxDateString} value={editDate} onChange={(e) => setEditDate(e.target.value)} 
+            className="block min-w-0 w-full max-w-full appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" 
+            style={{colorScheme: 'dark'}} 
+          />
+          
           <div className="flex gap-2 items-center">
-            <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 flex-1 text-sm" style={{colorScheme: 'dark'}} />
-            <ArrowRight size={14} className="text-indigo-400" />
-            <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 flex-1 text-sm" style={{colorScheme: 'dark'}} />
+            {/* ИЗМЕНЕНИЕ ТУТ: min-w-0 для time-инпутов */}
+            <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" style={{colorScheme: 'dark'}} />
+            <ArrowRight size={14} className="text-indigo-400 shrink-0" />
+            <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" style={{colorScheme: 'dark'}} />
           </div>
           
           <div className="flex gap-2 flex-col sm:flex-row">
-            <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl py-2.5 px-4 sm:w-1/3">
+            <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl py-2.5 px-4 sm:w-1/3 min-w-0">
               <Coffee size={16} className="text-gray-400 shrink-0" />
-              <input type="number" placeholder="Перерыв (мин)" value={editBreak} onChange={(e) => setEditBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-gray-600" />
+              <input type="number" placeholder="Перерыв (мин)" value={editBreak} onChange={(e) => setEditBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full min-w-0 text-sm placeholder:text-gray-600" />
             </div>
-            <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl py-2.5 px-4 flex-1">
+            <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl py-2.5 px-4 flex-1 min-w-0">
               <MessageSquare size={16} className="text-gray-400 shrink-0" />
-              <input type="text" placeholder="Заметка к смене" value={editNote} onChange={(e) => setEditNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-gray-600" />
+              <input type="text" placeholder="Заметка к смене" value={editNote} onChange={(e) => setEditNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full min-w-0 text-sm placeholder:text-gray-600" />
             </div>
           </div>
 
@@ -200,7 +208,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
           {shift.note && (
             <div className="flex items-start gap-2 pt-2 mt-1 border-t border-white/5 text-gray-400 text-sm">
               <MessageSquare size={14} className="mt-0.5 shrink-0 opacity-70" />
-              <span className="leading-snug italic">{shift.note}</span>
+              <span className="leading-snug italic break-words min-w-0">{shift.note}</span>
             </div>
           )}
         </div>
@@ -235,7 +243,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             <h3 className="text-lg font-semibold text-white/90">Смены месяца</h3>
             <button 
               onClick={() => {
-                if (!isManualEntryOpen) setEditingShiftId(null); // Закрываем редактирование при открытии плюсика
+                if (!isManualEntryOpen) setEditingShiftId(null);
                 setIsManualEntryOpen(!isManualEntryOpen);
               }} 
               className={cn("p-2 rounded-xl transition-colors", isManualEntryOpen ? "bg-rose-500/20 text-rose-400" : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30")}
@@ -247,21 +255,29 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
           {isManualEntryOpen && (
             <div className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20 mb-4 flex flex-col gap-4">
               <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Добавить вручную</h4>
-              <input type="date" max={maxDateString} value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 w-full" style={{colorScheme: 'dark'}} />
+              
+              {/* ИЗМЕНЕНИЕ ТУТ: Добавлены классы block min-w-0 max-w-full */}
+              <input 
+                type="date" max={maxDateString} value={manualDate} onChange={(e) => setManualDate(e.target.value)} 
+                className="block min-w-0 w-full max-w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" 
+                style={{colorScheme: 'dark'}} 
+              />
+              
               <div className="flex gap-3 items-center">
-                <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
-                <ArrowRight size={16} className="text-gray-500" />
-                <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
+                {/* ИЗМЕНЕНИЕ ТУТ: min-w-0 для time-инпутов */}
+                <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
+                <ArrowRight size={16} className="text-gray-500 shrink-0" />
+                <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
               </div>
               
               <div className="flex gap-2 flex-col sm:flex-row">
-                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 sm:w-1/3">
+                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 sm:w-1/3 min-w-0">
                   <Coffee size={16} className="text-gray-500 shrink-0" />
-                  <input type="number" placeholder="Перерыв (мин)" value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent focus:outline-none w-full placeholder:text-gray-600" />
+                  <input type="number" placeholder="Перерыв (мин)" value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" />
                 </div>
-                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 flex-1">
+                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 flex-1 min-w-0">
                   <MessageSquare size={16} className="text-gray-500 shrink-0" />
-                  <input type="text" placeholder="Заметка (необязательно)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent focus:outline-none w-full placeholder:text-gray-600" />
+                  <input type="text" placeholder="Заметка (необязательно)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" />
                 </div>
               </div>
 
@@ -269,7 +285,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             </div>
           )}
 
-          {/* ИЗМЕНЕНИЕ ТУТ: pb-24 заменен на pb-36 для надежного скролла на iOS */}
           <div className="flex-1 overflow-y-auto space-y-3 pb-36 no-scrollbar">
             {currentMonthData.shifts.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60"><HistoryIcon size={64} strokeWidth={1} /><p className="text-sm tracking-wide">В этом месяце смен пока нет</p></div>
@@ -304,7 +319,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
                 <AnimatePresence>
                   {expandedArchive === month.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 bg-black/20">
-                      {/* Увеличил максимальную высоту архива и добавил padding снизу */}
                       <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto pb-10 no-scrollbar">{month.shifts.map(shift => renderShiftItem(shift, true))}</div>
                     </motion.div>
                   )}
