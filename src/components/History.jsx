@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil } from 'lucide-react';
 import CountUp from 'react-countup';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils';
@@ -8,10 +8,17 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   const [activeTab, setActiveTab] = useState('current');
   const [expandedArchive, setExpandedArchive] = useState(null);
   
+  // Состояния для ручного добавления
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
   const [manualDate, setManualDate] = useState('');
   const [manualStartTime, setManualStartTime] = useState('');
   const [manualEndTime, setManualEndTime] = useState('');
+
+  // Состояния для редактирования
+  const [editingShiftId, setEditingShiftId] = useState(null);
+  const [editDate, setEditDate] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
 
   const formatTime = (ms) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -30,21 +37,59 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     e.stopPropagation();
     if (window.confirm(`Точно удалить весь архив за ${monthLabel}?\nБудут безвозвратно удалены все смены этого месяца.`)) {
       const [year, month] = monthId.split('-').map(Number);
-      
       const updatedShifts = shifts.filter(shift => {
         const d = new Date(shift.startTime);
         return !(d.getFullYear() === year && d.getMonth() === month);
       });
-      
       setShifts(updatedShifts);
       if (expandedArchive === monthId) setExpandedArchive(null);
     }
   };
 
+  // --- ЛОГИКА РЕДАКТИРОВАНИЯ ---
+  const handleEditClick = (shift) => {
+    const startD = new Date(shift.startTime);
+    const endD = new Date(shift.endTime);
+    
+    // Форматируем дату и время для инпутов (YYYY-MM-DD и HH:mm)
+    setEditDate(`${startD.getFullYear()}-${String(startD.getMonth() + 1).padStart(2, '0')}-${String(startD.getDate()).padStart(2, '0')}`);
+    setEditStartTime(`${String(startD.getHours()).padStart(2, '0')}:${String(startD.getMinutes()).padStart(2, '0')}`);
+    setEditEndTime(`${String(endD.getHours()).padStart(2, '0')}:${String(endD.getMinutes()).padStart(2, '0')}`);
+    
+    setEditingShiftId(shift.id);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editDate || !editStartTime || !editEndTime) return;
+
+    const start = new Date(`${editDate}T${editStartTime}`);
+    if (start > new Date()) {
+      alert('Нельзя перенести смену в будущее!');
+      return;
+    }
+
+    let end = new Date(`${editDate}T${editEndTime}`);
+    if (end < start) end.setDate(end.getDate() + 1); // Обработка ночных смен
+
+    const durationMs = end.getTime() - start.getTime();
+    const rate = parseFloat(hourlyRate) || 0;
+    const earned = (durationMs / 3600000) * rate;
+
+    const updatedShifts = shifts.map(shift => {
+      if (shift.id === editingShiftId) {
+        return { ...shift, startTime: start.getTime(), endTime: end.getTime(), durationMs, earned };
+      }
+      return shift;
+    }).sort((a, b) => b.startTime - a.startTime); // Сортируем заново, если дата изменилась
+
+    setShifts(updatedShifts);
+    setEditingShiftId(null);
+  };
+  // -----------------------------
+
   const { currentMonthData, archiveMonths } = useMemo(() => {
     const now = new Date();
     const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
-    
     const groups = {};
     
     shifts.forEach(shift => {
@@ -54,15 +99,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
       if (!groups[key]) {
         let monthName = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
         monthName = monthName.charAt(0).toUpperCase() + monthName.slice(1).replace(' г.', '');
-        
-        groups[key] = {
-          id: key,
-          label: monthName,
-          sortValue: d.getTime(),
-          shifts: [],
-          totalEarned: 0,
-          totalDuration: 0,
-        };
+        groups[key] = { id: key, label: monthName, sortValue: d.getTime(), shifts: [], totalEarned: 0, totalDuration: 0 };
       }
       groups[key].shifts.push(shift);
       groups[key].totalEarned += shift.earned;
@@ -81,9 +118,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     if (!manualDate || !manualStartTime || !manualEndTime) return;
     const start = new Date(`${manualDate}T${manualStartTime}`);
     
-    // ПРОВЕРКА НА БУДУЩЕЕ
     if (start > new Date()) {
-      alert('Нельзя добавить смену из будущего! Выберите корректное время.');
+      alert('Нельзя добавить смену из будущего!');
       return;
     }
 
@@ -103,44 +139,89 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     setManualEndTime('');
   };
 
-  // Вычисляем сегодняшнюю дату в формате YYYY-MM-DD для ограничения календаря
   const today = new Date();
   const maxDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-  const renderShiftItem = (shift, hideDelete = false) => (
-    <div key={shift.id} className="bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-5 rounded-3xl border border-white/5 flex flex-col gap-3 group">
-      <div className="flex justify-between items-center">
-        <span className="text-gray-200 font-medium text-lg">
-          {new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-        </span>
-        <div className="flex items-center gap-3">
-          <span className="font-bold text-emerald-400 text-lg flex items-center gap-1">
-            <span>+</span><span className="flex items-center">{currency}</span>{shift.earned.toFixed(2)}
-          </span>
-          {!hideDelete && (
-            <button 
-              onClick={() => handleDeleteShift(shift.id)}
-              className="text-gray-600 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all"
-              title="Удалить смену"
-            >
-              <Trash2 size={18} />
+  const renderShiftItem = (shift, hideDelete = false) => {
+    // Если смена находится в режиме редактирования — показываем форму
+    if (editingShiftId === shift.id) {
+      return (
+        <div key={shift.id} className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/30 flex flex-col gap-4 shadow-lg shadow-indigo-500/5">
+          <div className="flex justify-between items-center">
+            <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Редактирование</h4>
+            <button onClick={() => setEditingShiftId(null)} className="text-gray-400 hover:text-white transition-colors">
+              <X size={18} />
             </button>
-          )}
+          </div>
+          
+          <input 
+            type="date" max={maxDateString} value={editDate} onChange={(e) => setEditDate(e.target.value)} 
+            className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 w-full text-sm" style={{colorScheme: 'dark'}} 
+          />
+          <div className="flex gap-2 items-center">
+            <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 flex-1 text-sm" style={{colorScheme: 'dark'}} />
+            <ArrowRight size={14} className="text-indigo-400" />
+            <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 flex-1 text-sm" style={{colorScheme: 'dark'}} />
+          </div>
+          
+          <div className="flex gap-2 mt-1">
+            <button onClick={handleSaveEdit} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+              Сохранить
+            </button>
+            <button onClick={() => setEditingShiftId(null)} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-300 font-semibold py-2.5 rounded-xl transition-colors text-sm">
+              Отмена
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Обычный вид смены
+    return (
+      <div key={shift.id} className="bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-5 rounded-3xl border border-white/5 flex flex-col gap-3 group">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-200 font-medium text-lg">
+            {new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+          </span>
+          <div className="flex items-center gap-1">
+            <span className="font-bold text-emerald-400 text-lg flex items-center gap-1 mr-2">
+              <span>+</span><span className="flex items-center">{currency}</span>{shift.earned.toFixed(2)}
+            </span>
+            
+            {!hideDelete && (
+              <>
+                <button 
+                  onClick={() => handleEditClick(shift)}
+                  className="text-gray-500 hover:text-indigo-400 bg-transparent hover:bg-indigo-500/10 p-2 rounded-xl transition-all"
+                  title="Редактировать смену"
+                >
+                  <Pencil size={18} />
+                </button>
+                <button 
+                  onClick={() => handleDeleteShift(shift.id)}
+                  className="text-gray-500 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all"
+                  title="Удалить смену"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-between items-center bg-black/20 p-3 rounded-2xl">
+          <div className="flex items-center text-sm text-gray-400 font-medium">
+            <span>{new Date(shift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            <ArrowRight size={14} className="mx-2 opacity-50" />
+            <span>{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+          </div>
+          <div className="flex items-center text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-xl font-mono text-sm">
+            <Clock size={12} className="mr-2" />
+            {formatTime(shift.durationMs)}
+          </div>
         </div>
       </div>
-      <div className="flex justify-between items-center bg-black/20 p-3 rounded-2xl">
-        <div className="flex items-center text-sm text-gray-400 font-medium">
-          <span>{new Date(shift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-          <ArrowRight size={14} className="mx-2 opacity-50" />
-          <span>{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-        </div>
-        <div className="flex items-center text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-xl font-mono text-sm">
-          <Clock size={12} className="mr-2" />
-          {formatTime(shift.durationMs)}
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="p-6 h-full flex flex-col">
@@ -204,14 +285,9 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
           {isManualEntryOpen && (
             <div className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20 mb-4 flex flex-col gap-4">
               <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Добавить вручную</h4>
-              {/* ДОБАВЛЕН АТРИБУТ max */}
               <input 
-                type="date" 
-                max={maxDateString}
-                value={manualDate} 
-                onChange={(e) => setManualDate(e.target.value)} 
-                className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 w-full" 
-                style={{colorScheme: 'dark'}} 
+                type="date" max={maxDateString} value={manualDate} onChange={(e) => setManualDate(e.target.value)} 
+                className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 w-full" style={{colorScheme: 'dark'}} 
               />
               <div className="flex gap-3 items-center">
                 <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
