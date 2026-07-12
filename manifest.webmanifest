@@ -1,0 +1,1 @@
+{"name":"WorkTracker PWA","short_name":"WorkTracker","description":"Трекер рабочего времени и заработка","start_url":"/work-tracker-pwa/","display":"standalone","background_color":"#0a0a0c","theme_color":"#0a0a0c","lang":"en","scope":"/work-tracker-pwa/","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/2921/2921222.png","sizes":"512x512","type":"image/png"}]}
