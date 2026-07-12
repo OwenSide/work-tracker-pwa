@@ -1,10 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>work-tracker-pwa</title>
+    
+    <!-- Иконка вкладки (по умолчанию Vite, потом можешь положить свою в папку public) -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    
+    <!-- Идеальный Viewport для PWA: отключает зум, подстраивается под вырезы (челку) экрана -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    
+    <title>WorkTracker</title> 
+
+    <!-- Настройки PWA для Android и iOS -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Цвет верхней панели браузера (под цвет нашего фона) -->
+    <meta name="theme-color" content="#0a0a0c">
   </head>
   <body>
     <div id="root"></div>
