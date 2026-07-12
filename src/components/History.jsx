@@ -14,7 +14,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   const [manualStartTime, setManualStartTime] = useState('');
   const [manualEndTime, setManualEndTime] = useState('');
   const [manualBreak, setManualBreak] = useState('');
-  const [manualNote, setManualNote] = useState(''); // Новое: Заметка
+  const [manualNote, setManualNote] = useState('');
 
   // Редактирование
   const [editingShiftId, setEditingShiftId] = useState(null);
@@ -22,7 +22,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   const [editStartTime, setEditStartTime] = useState('');
   const [editEndTime, setEditEndTime] = useState('');
   const [editBreak, setEditBreak] = useState('');
-  const [editNote, setEditNote] = useState(''); // Новое: Заметка
+  const [editNote, setEditNote] = useState('');
 
   const formatTime = (ms) => {
     const totalSeconds = Math.floor(Math.max(0, ms) / 1000);
@@ -48,6 +48,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   };
 
   const handleEditClick = (shift) => {
+    setIsManualEntryOpen(false); // Закрываем ручной ввод, если открыто редактирование
+
     const startD = new Date(shift.startTime);
     const endD = new Date(shift.endTime);
     setEditDate(`${startD.getFullYear()}-${String(startD.getMonth() + 1).padStart(2, '0')}-${String(startD.getDate()).padStart(2, '0')}`);
@@ -195,7 +197,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             </div>
           </div>
           
-          {/* Отображение заметки */}
           {shift.note && (
             <div className="flex items-start gap-2 pt-2 mt-1 border-t border-white/5 text-gray-400 text-sm">
               <MessageSquare size={14} className="mt-0.5 shrink-0 opacity-70" />
@@ -232,7 +233,15 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 flex flex-col min-h-0">
           <div className="flex justify-between items-center mb-4 px-1">
             <h3 className="text-lg font-semibold text-white/90">Смены месяца</h3>
-            <button onClick={() => setIsManualEntryOpen(!isManualEntryOpen)} className={cn("p-2 rounded-xl transition-colors", isManualEntryOpen ? "bg-rose-500/20 text-rose-400" : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30")}>{isManualEntryOpen ? <X size={20} /> : <Plus size={20} />}</button>
+            <button 
+              onClick={() => {
+                if (!isManualEntryOpen) setEditingShiftId(null); // Закрываем редактирование при открытии плюсика
+                setIsManualEntryOpen(!isManualEntryOpen);
+              }} 
+              className={cn("p-2 rounded-xl transition-colors", isManualEntryOpen ? "bg-rose-500/20 text-rose-400" : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30")}
+            >
+              {isManualEntryOpen ? <X size={20} /> : <Plus size={20} />}
+            </button>
           </div>
 
           {isManualEntryOpen && (
@@ -260,7 +269,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto space-y-3 pb-24 no-scrollbar">
+          {/* ИЗМЕНЕНИЕ ТУТ: pb-24 заменен на pb-36 для надежного скролла на iOS */}
+          <div className="flex-1 overflow-y-auto space-y-3 pb-36 no-scrollbar">
             {currentMonthData.shifts.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60"><HistoryIcon size={64} strokeWidth={1} /><p className="text-sm tracking-wide">В этом месяце смен пока нет</p></div>
             ) : (currentMonthData.shifts.map(shift => renderShiftItem(shift, false)))}
@@ -269,7 +279,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
       )}
 
       {activeTab === 'archive' && (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 overflow-y-auto space-y-4 pb-24 no-scrollbar">
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 overflow-y-auto space-y-4 pb-36 no-scrollbar">
           {archiveMonths.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60"><CalendarDays size={64} strokeWidth={1} /><p className="text-sm tracking-wide">Архив пока пуст</p></div>
           ) : (
@@ -294,7 +304,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
                 <AnimatePresence>
                   {expandedArchive === month.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 bg-black/20">
-                      <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto no-scrollbar">{month.shifts.map(shift => renderShiftItem(shift, true))}</div>
+                      {/* Увеличил максимальную высоту архива и добавил padding снизу */}
+                      <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto pb-10 no-scrollbar">{month.shifts.map(shift => renderShiftItem(shift, true))}</div>
                     </motion.div>
                   )}
                 </AnimatePresence>
