@@ -63,7 +63,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   const handleSaveEdit = () => {
     if (!editDate || !editStartTime || !editEndTime) return;
     const start = new Date(`${editDate}T${editStartTime}`);
-    if (start > new Date()) { alert('Нельзя перенести смену в будущее!'); return; }
+    if (start > new Date()) { alert('Время начала не может быть в будущем!'); return; }
     
     let end = new Date(`${editDate}T${editEndTime}`);
     if (end < start) end.setDate(end.getDate() + 1);
@@ -84,7 +84,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   const handleAddManualShift = () => {
     if (!manualDate || !manualStartTime || !manualEndTime) return;
     const start = new Date(`${manualDate}T${manualStartTime}`);
-    if (start > new Date()) { alert('Нельзя добавить смену из будущего!'); return; }
+    if (start > new Date()) { alert('Время начала не может быть в будущем!'); return; }
     
     let end = new Date(`${manualDate}T${manualEndTime}`);
     if (end < start) end.setDate(end.getDate() + 1);
@@ -125,8 +125,21 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     return { currentMonthData: current, archiveMonths: archives };
   }, [shifts]);
 
+  // Вычисляем сегодняшнюю дату
   const today = new Date();
   const maxDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  // ЖЕСТКИЙ КОНТРОЛЬ: Функция, которая перехватывает ввод даты
+  const handleSafeDateChange = (e, setter) => {
+    const selectedDate = e.target.value;
+    // Сравниваем строки YYYY-MM-DD. Если выбранная дата больше сегодняшней - блокируем
+    if (selectedDate > maxDateString) {
+      alert('Нельзя выбрать дату из будущего!');
+      setter(maxDateString); // Сбрасываем на сегодня
+    } else {
+      setter(selectedDate);
+    }
+  };
 
   const renderShiftItem = (shift, hideDelete = false) => {
     if (editingShiftId === shift.id) {
@@ -137,15 +150,16 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             <button onClick={() => setEditingShiftId(null)} className="text-gray-400 hover:text-white transition-colors"><X size={18} /></button>
           </div>
           
-          {/* ИЗМЕНЕНИЕ ТУТ: Добавлены классы block min-w-0 max-w-full */}
           <input 
-            type="date" max={maxDateString} value={editDate} onChange={(e) => setEditDate(e.target.value)} 
+            type="date" 
+            max={maxDateString} 
+            value={editDate} 
+            onChange={(e) => handleSafeDateChange(e, setEditDate)} // Используем безопасный обработчик
             className="block min-w-0 w-full max-w-full appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" 
             style={{colorScheme: 'dark'}} 
           />
           
           <div className="flex gap-2 items-center">
-            {/* ИЗМЕНЕНИЕ ТУТ: min-w-0 для time-инпутов */}
             <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" style={{colorScheme: 'dark'}} />
             <ArrowRight size={14} className="text-indigo-400 shrink-0" />
             <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" style={{colorScheme: 'dark'}} />
@@ -256,15 +270,16 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             <div className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20 mb-4 flex flex-col gap-4">
               <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Добавить вручную</h4>
               
-              {/* ИЗМЕНЕНИЕ ТУТ: Добавлены классы block min-w-0 max-w-full */}
               <input 
-                type="date" max={maxDateString} value={manualDate} onChange={(e) => setManualDate(e.target.value)} 
+                type="date" 
+                max={maxDateString} 
+                value={manualDate} 
+                onChange={(e) => handleSafeDateChange(e, setManualDate)} // Используем безопасный обработчик
                 className="block min-w-0 w-full max-w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" 
                 style={{colorScheme: 'dark'}} 
               />
               
               <div className="flex gap-3 items-center">
-                {/* ИЗМЕНЕНИЕ ТУТ: min-w-0 для time-инпутов */}
                 <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
                 <ArrowRight size={16} className="text-gray-500 shrink-0" />
                 <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
