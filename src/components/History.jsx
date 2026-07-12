@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil } from 'lucide-react';
+import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare } from 'lucide-react';
 import CountUp from 'react-countup';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils';
@@ -8,84 +8,97 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   const [activeTab, setActiveTab] = useState('current');
   const [expandedArchive, setExpandedArchive] = useState(null);
   
-  // Состояния для ручного добавления
+  // Ручное добавление
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
   const [manualDate, setManualDate] = useState('');
   const [manualStartTime, setManualStartTime] = useState('');
   const [manualEndTime, setManualEndTime] = useState('');
+  const [manualBreak, setManualBreak] = useState('');
+  const [manualNote, setManualNote] = useState(''); // Новое: Заметка
 
-  // Состояния для редактирования
+  // Редактирование
   const [editingShiftId, setEditingShiftId] = useState(null);
   const [editDate, setEditDate] = useState('');
   const [editStartTime, setEditStartTime] = useState('');
   const [editEndTime, setEditEndTime] = useState('');
+  const [editBreak, setEditBreak] = useState('');
+  const [editNote, setEditNote] = useState(''); // Новое: Заметка
 
   const formatTime = (ms) => {
-    const totalSeconds = Math.floor(ms / 1000);
+    const totalSeconds = Math.floor(Math.max(0, ms) / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     return `${hours} ч ${minutes} мин`;
   };
 
   const handleDeleteShift = (id) => {
-    if (window.confirm('Точно удалить эту смену?')) {
-      setShifts(shifts.filter(shift => shift.id !== id));
-    }
+    if (window.confirm('Точно удалить эту смену?')) setShifts(shifts.filter(shift => shift.id !== id));
   };
 
   const handleDeleteMonth = (e, monthId, monthLabel) => {
     e.stopPropagation();
-    if (window.confirm(`Точно удалить весь архив за ${monthLabel}?\nБудут безвозвратно удалены все смены этого месяца.`)) {
+    if (window.confirm(`Точно удалить весь архив за ${monthLabel}?`)) {
       const [year, month] = monthId.split('-').map(Number);
-      const updatedShifts = shifts.filter(shift => {
+      setShifts(shifts.filter(shift => {
         const d = new Date(shift.startTime);
         return !(d.getFullYear() === year && d.getMonth() === month);
-      });
-      setShifts(updatedShifts);
+      }));
       if (expandedArchive === monthId) setExpandedArchive(null);
     }
   };
 
-  // --- ЛОГИКА РЕДАКТИРОВАНИЯ ---
   const handleEditClick = (shift) => {
     const startD = new Date(shift.startTime);
     const endD = new Date(shift.endTime);
-    
-    // Форматируем дату и время для инпутов (YYYY-MM-DD и HH:mm)
     setEditDate(`${startD.getFullYear()}-${String(startD.getMonth() + 1).padStart(2, '0')}-${String(startD.getDate()).padStart(2, '0')}`);
     setEditStartTime(`${String(startD.getHours()).padStart(2, '0')}:${String(startD.getMinutes()).padStart(2, '0')}`);
     setEditEndTime(`${String(endD.getHours()).padStart(2, '0')}:${String(endD.getMinutes()).padStart(2, '0')}`);
-    
+    setEditBreak(shift.pauseMs ? Math.round(shift.pauseMs / 60000).toString() : '');
+    setEditNote(shift.note || '');
     setEditingShiftId(shift.id);
   };
 
   const handleSaveEdit = () => {
     if (!editDate || !editStartTime || !editEndTime) return;
-
     const start = new Date(`${editDate}T${editStartTime}`);
-    if (start > new Date()) {
-      alert('Нельзя перенести смену в будущее!');
-      return;
-    }
-
+    if (start > new Date()) { alert('Нельзя перенести смену в будущее!'); return; }
+    
     let end = new Date(`${editDate}T${editEndTime}`);
-    if (end < start) end.setDate(end.getDate() + 1); // Обработка ночных смен
+    if (end < start) end.setDate(end.getDate() + 1);
 
-    const durationMs = end.getTime() - start.getTime();
+    const pauseMs = (parseInt(editBreak) || 0) * 60000;
+    const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
     const rate = parseFloat(hourlyRate) || 0;
     const earned = (durationMs / 3600000) * rate;
+    const note = editNote.trim();
 
-    const updatedShifts = shifts.map(shift => {
-      if (shift.id === editingShiftId) {
-        return { ...shift, startTime: start.getTime(), endTime: end.getTime(), durationMs, earned };
-      }
-      return shift;
-    }).sort((a, b) => b.startTime - a.startTime); // Сортируем заново, если дата изменилась
+    const updatedShifts = shifts.map(shift => shift.id === editingShiftId ? { ...shift, startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note } : shift)
+      .sort((a, b) => b.startTime - a.startTime);
 
     setShifts(updatedShifts);
     setEditingShiftId(null);
   };
-  // -----------------------------
+
+  const handleAddManualShift = () => {
+    if (!manualDate || !manualStartTime || !manualEndTime) return;
+    const start = new Date(`${manualDate}T${manualStartTime}`);
+    if (start > new Date()) { alert('Нельзя добавить смену из будущего!'); return; }
+    
+    let end = new Date(`${manualDate}T${manualEndTime}`);
+    if (end < start) end.setDate(end.getDate() + 1);
+
+    const pauseMs = (parseInt(manualBreak) || 0) * 60000;
+    const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
+    const rate = parseFloat(hourlyRate) || 0;
+    const earned = (durationMs / 3600000) * rate;
+    const note = manualNote.trim();
+
+    const newShift = { id: Date.now(), startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note };
+    setShifts([newShift, ...shifts].sort((a, b) => b.startTime - a.startTime));
+    
+    setIsManualEntryOpen(false);
+    setManualDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote('');
+  };
 
   const { currentMonthData, archiveMonths } = useMemo(() => {
     const now = new Date();
@@ -95,7 +108,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     shifts.forEach(shift => {
       const d = new Date(shift.startTime);
       const key = `${d.getFullYear()}-${d.getMonth()}`;
-      
       if (!groups[key]) {
         let monthName = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
         monthName = monthName.charAt(0).toUpperCase() + monthName.slice(1).replace(' г.', '');
@@ -107,117 +119,89 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     });
 
     const current = groups[currentKey] || { shifts: [], totalEarned: 0, totalDuration: 0 };
-    const archives = Object.values(groups)
-      .filter(g => g.id !== currentKey)
-      .sort((a, b) => b.sortValue - a.sortValue);
-
+    const archives = Object.values(groups).filter(g => g.id !== currentKey).sort((a, b) => b.sortValue - a.sortValue);
     return { currentMonthData: current, archiveMonths: archives };
   }, [shifts]);
-
-  const handleAddManualShift = () => {
-    if (!manualDate || !manualStartTime || !manualEndTime) return;
-    const start = new Date(`${manualDate}T${manualStartTime}`);
-    
-    if (start > new Date()) {
-      alert('Нельзя добавить смену из будущего!');
-      return;
-    }
-
-    let end = new Date(`${manualDate}T${manualEndTime}`);
-    if (end < start) end.setDate(end.getDate() + 1);
-
-    const durationMs = end.getTime() - start.getTime();
-    const rate = parseFloat(hourlyRate) || 0;
-    const earned = (durationMs / 3600000) * rate;
-
-    const newShift = { id: Date.now(), startTime: start.getTime(), endTime: end.getTime(), durationMs, earned };
-    setShifts([newShift, ...shifts].sort((a, b) => b.startTime - a.startTime));
-    
-    setIsManualEntryOpen(false);
-    setManualDate('');
-    setManualStartTime('');
-    setManualEndTime('');
-  };
 
   const today = new Date();
   const maxDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const renderShiftItem = (shift, hideDelete = false) => {
-    // Если смена находится в режиме редактирования — показываем форму
     if (editingShiftId === shift.id) {
       return (
         <div key={shift.id} className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/30 flex flex-col gap-4 shadow-lg shadow-indigo-500/5">
           <div className="flex justify-between items-center">
             <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Редактирование</h4>
-            <button onClick={() => setEditingShiftId(null)} className="text-gray-400 hover:text-white transition-colors">
-              <X size={18} />
-            </button>
+            <button onClick={() => setEditingShiftId(null)} className="text-gray-400 hover:text-white transition-colors"><X size={18} /></button>
           </div>
-          
-          <input 
-            type="date" max={maxDateString} value={editDate} onChange={(e) => setEditDate(e.target.value)} 
-            className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 w-full text-sm" style={{colorScheme: 'dark'}} 
-          />
+          <input type="date" max={maxDateString} value={editDate} onChange={(e) => setEditDate(e.target.value)} className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 w-full text-sm" style={{colorScheme: 'dark'}} />
           <div className="flex gap-2 items-center">
             <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 flex-1 text-sm" style={{colorScheme: 'dark'}} />
             <ArrowRight size={14} className="text-indigo-400" />
             <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 flex-1 text-sm" style={{colorScheme: 'dark'}} />
           </div>
           
+          <div className="flex gap-2 flex-col sm:flex-row">
+            <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl py-2.5 px-4 sm:w-1/3">
+              <Coffee size={16} className="text-gray-400 shrink-0" />
+              <input type="number" placeholder="Перерыв (мин)" value={editBreak} onChange={(e) => setEditBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-gray-600" />
+            </div>
+            <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl py-2.5 px-4 flex-1">
+              <MessageSquare size={16} className="text-gray-400 shrink-0" />
+              <input type="text" placeholder="Заметка к смене" value={editNote} onChange={(e) => setEditNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-gray-600" />
+            </div>
+          </div>
+
           <div className="flex gap-2 mt-1">
-            <button onClick={handleSaveEdit} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
-              Сохранить
-            </button>
-            <button onClick={() => setEditingShiftId(null)} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-300 font-semibold py-2.5 rounded-xl transition-colors text-sm">
-              Отмена
-            </button>
+            <button onClick={handleSaveEdit} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">Сохранить</button>
           </div>
         </div>
       );
     }
 
-    // Обычный вид смены
     return (
       <div key={shift.id} className="bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-5 rounded-3xl border border-white/5 flex flex-col gap-3 group">
         <div className="flex justify-between items-center">
-          <span className="text-gray-200 font-medium text-lg">
-            {new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-          </span>
+          <span className="text-gray-200 font-medium text-lg">{new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
           <div className="flex items-center gap-1">
             <span className="font-bold text-emerald-400 text-lg flex items-center gap-1 mr-2">
               <span>+</span><span className="flex items-center">{currency}</span>{shift.earned.toFixed(2)}
             </span>
-            
             {!hideDelete && (
               <>
-                <button 
-                  onClick={() => handleEditClick(shift)}
-                  className="text-gray-500 hover:text-indigo-400 bg-transparent hover:bg-indigo-500/10 p-2 rounded-xl transition-all"
-                  title="Редактировать смену"
-                >
-                  <Pencil size={18} />
-                </button>
-                <button 
-                  onClick={() => handleDeleteShift(shift.id)}
-                  className="text-gray-500 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all"
-                  title="Удалить смену"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <button onClick={() => handleEditClick(shift)} className="text-gray-500 hover:text-indigo-400 bg-transparent hover:bg-indigo-500/10 p-2 rounded-xl transition-all" title="Редактировать"><Pencil size={18} /></button>
+                <button onClick={() => handleDeleteShift(shift.id)} className="text-gray-500 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all" title="Удалить"><Trash2 size={18} /></button>
               </>
             )}
           </div>
         </div>
-        <div className="flex justify-between items-center bg-black/20 p-3 rounded-2xl">
-          <div className="flex items-center text-sm text-gray-400 font-medium">
-            <span>{new Date(shift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-            <ArrowRight size={14} className="mx-2 opacity-50" />
-            <span>{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+        
+        <div className="flex flex-col bg-black/20 p-3 rounded-2xl gap-2">
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div className="flex items-center text-sm text-gray-400 font-medium">
+              <span>{new Date(shift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              <ArrowRight size={14} className="mx-2 opacity-50" />
+              <span>{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
+            <div className="flex gap-2">
+              {shift.pauseMs > 0 && (
+                <div className="flex items-center text-amber-500/90 bg-amber-500/10 px-2 py-1 rounded-lg font-mono text-xs" title="Время перерыва">
+                  <Coffee size={12} className="mr-1.5" />{Math.round(shift.pauseMs / 60000)} м
+                </div>
+              )}
+              <div className="flex items-center text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-xl font-mono text-sm">
+                <Clock size={12} className="mr-2" />{formatTime(shift.durationMs)}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-xl font-mono text-sm">
-            <Clock size={12} className="mr-2" />
-            {formatTime(shift.durationMs)}
-          </div>
+          
+          {/* Отображение заметки */}
+          {shift.note && (
+            <div className="flex items-start gap-2 pt-2 mt-1 border-t border-white/5 text-gray-400 text-sm">
+              <MessageSquare size={14} className="mt-0.5 shrink-0 opacity-70" />
+              <span className="leading-snug italic">{shift.note}</span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -227,88 +211,59 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     <div className="p-6 h-full flex flex-col">
       <div className="flex justify-between items-end mb-6 bg-white/[0.02] p-5 rounded-3xl border border-white/5 relative overflow-hidden">
         <div className="relative z-10">
-          <h2 className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">
-            {activeTab === 'current' ? 'Заработано в этом месяце' : 'Всего за всё время'}
-          </h2>
+          <h2 className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">{activeTab === 'current' ? 'Заработано в этом месяце' : 'Всего за всё время'}</h2>
           <div className="text-3xl font-bold flex items-center">
             <span className="text-emerald-400 flex items-center mr-1">{currency}</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-              <CountUp 
-                key={activeTab}
-                end={activeTab === 'current' ? currentMonthData.totalEarned : shifts.reduce((s, sh) => s + sh.earned, 0)} 
-                decimals={2} 
-                duration={1} 
-                separator=" " 
-              />
+              <CountUp key={activeTab} end={activeTab === 'current' ? currentMonthData.totalEarned : shifts.reduce((s, sh) => s + sh.earned, 0)} decimals={2} duration={1} separator=" " />
             </span>
           </div>
         </div>
-        <div className="bg-emerald-500/10 p-3 rounded-2xl relative z-10">
-          <Wallet className="text-emerald-400" size={28} />
-        </div>
+        <div className="bg-emerald-500/10 p-3 rounded-2xl relative z-10"><Wallet className="text-emerald-400" size={28} /></div>
         <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="flex bg-black/40 p-1.5 rounded-2xl mb-6 border border-white/5">
-        <button
-          onClick={() => setActiveTab('current')}
-          className={cn("flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2", 
-            activeTab === 'current' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300"
-          )}
-        >
-          <Clock size={16} />
-          Текущий
-        </button>
-        <button
-          onClick={() => setActiveTab('archive')}
-          className={cn("flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2", 
-            activeTab === 'archive' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300"
-          )}
-        >
-          <CalendarDays size={16} />
-          Архив
-        </button>
+        <button onClick={() => setActiveTab('current')} className={cn("flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2", activeTab === 'current' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300")}><Clock size={16} />Текущий</button>
+        <button onClick={() => setActiveTab('archive')} className={cn("flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2", activeTab === 'archive' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300")}><CalendarDays size={16} />Архив</button>
       </div>
 
       {activeTab === 'current' && (
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 flex flex-col min-h-0">
           <div className="flex justify-between items-center mb-4 px-1">
             <h3 className="text-lg font-semibold text-white/90">Смены месяца</h3>
-            <button 
-              onClick={() => setIsManualEntryOpen(!isManualEntryOpen)}
-              className={cn("p-2 rounded-xl transition-colors", isManualEntryOpen ? "bg-rose-500/20 text-rose-400" : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30")}
-            >
-              {isManualEntryOpen ? <X size={20} /> : <Plus size={20} />}
-            </button>
+            <button onClick={() => setIsManualEntryOpen(!isManualEntryOpen)} className={cn("p-2 rounded-xl transition-colors", isManualEntryOpen ? "bg-rose-500/20 text-rose-400" : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30")}>{isManualEntryOpen ? <X size={20} /> : <Plus size={20} />}</button>
           </div>
 
           {isManualEntryOpen && (
             <div className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20 mb-4 flex flex-col gap-4">
               <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Добавить вручную</h4>
-              <input 
-                type="date" max={maxDateString} value={manualDate} onChange={(e) => setManualDate(e.target.value)} 
-                className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 w-full" style={{colorScheme: 'dark'}} 
-              />
+              <input type="date" max={maxDateString} value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 w-full" style={{colorScheme: 'dark'}} />
               <div className="flex gap-3 items-center">
                 <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
                 <ArrowRight size={16} className="text-gray-500" />
                 <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
               </div>
-              <button onClick={handleAddManualShift} disabled={!manualDate || !manualStartTime || !manualEndTime} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-3 rounded-xl transition-colors mt-2">
-                Сохранить
-              </button>
+              
+              <div className="flex gap-2 flex-col sm:flex-row">
+                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 sm:w-1/3">
+                  <Coffee size={16} className="text-gray-500 shrink-0" />
+                  <input type="number" placeholder="Перерыв (мин)" value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent focus:outline-none w-full placeholder:text-gray-600" />
+                </div>
+                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 flex-1">
+                  <MessageSquare size={16} className="text-gray-500 shrink-0" />
+                  <input type="text" placeholder="Заметка (необязательно)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent focus:outline-none w-full placeholder:text-gray-600" />
+                </div>
+              </div>
+
+              <button onClick={handleAddManualShift} disabled={!manualDate || !manualStartTime || !manualEndTime} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-3 rounded-xl transition-colors mt-2">Сохранить</button>
             </div>
           )}
 
           <div className="flex-1 overflow-y-auto space-y-3 pb-24 no-scrollbar">
             {currentMonthData.shifts.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60">
-                <HistoryIcon size={64} strokeWidth={1} />
-                <p className="text-sm tracking-wide">В этом месяце смен пока нет</p>
-              </div>
-            ) : (
-              currentMonthData.shifts.map(shift => renderShiftItem(shift, false))
-            )}
+              <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60"><HistoryIcon size={64} strokeWidth={1} /><p className="text-sm tracking-wide">В этом месяце смен пока нет</p></div>
+            ) : (currentMonthData.shifts.map(shift => renderShiftItem(shift, false)))}
           </div>
         </motion.div>
       )}
@@ -316,10 +271,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
       {activeTab === 'archive' && (
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 overflow-y-auto space-y-4 pb-24 no-scrollbar">
           {archiveMonths.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60">
-              <CalendarDays size={64} strokeWidth={1} />
-              <p className="text-sm tracking-wide">Архив пока пуст</p>
-            </div>
+            <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60"><CalendarDays size={64} strokeWidth={1} /><p className="text-sm tracking-wide">Архив пока пуст</p></div>
           ) : (
             archiveMonths.map(month => (
               <div key={month.id} className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
@@ -328,35 +280,21 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
                     <div className="flex-1 cursor-pointer flex flex-col gap-3" onClick={() => setExpandedArchive(expandedArchive === month.id ? null : month.id)}>
                       <span className="text-white font-semibold text-lg">{month.label}</span>
                       <div className="flex gap-4">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Заработано</span>
-                          <span className="text-emerald-400 font-bold flex items-center text-sm">
-                            <span className="flex items-center mr-1">{currency}</span>{month.totalEarned.toFixed(2)}
-                          </span>
-                        </div>
+                        <div className="flex flex-col"><span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Заработано</span><span className="text-emerald-400 font-bold flex items-center text-sm"><span className="flex items-center mr-1">{currency}</span>{month.totalEarned.toFixed(2)}</span></div>
                         <div className="w-px bg-white/10"></div>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Время</span>
-                          <span className="text-indigo-300 font-mono text-sm">{formatTime(month.totalDuration)}</span>
-                        </div>
+                        <div className="flex flex-col"><span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Время</span><span className="text-indigo-300 font-mono text-sm">{formatTime(month.totalDuration)}</span></div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 ml-4 mt-1">
-                      <button onClick={(e) => handleDeleteMonth(e, month.id, month.label)} className="text-gray-600 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all z-10" title="Удалить весь месяц">
-                        <Trash2 size={18} />
-                      </button>
-                      <div className="p-2 text-gray-400 pointer-events-none">
-                        {expandedArchive === month.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                      </div>
+                      <button onClick={(e) => handleDeleteMonth(e, month.id, month.label)} className="text-gray-600 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all z-10"><Trash2 size={18} /></button>
+                      <div className="p-2 text-gray-400 pointer-events-none">{expandedArchive === month.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</div>
                     </div>
                   </div>
                 </div>
                 <AnimatePresence>
                   {expandedArchive === month.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 bg-black/20">
-                      <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto no-scrollbar">
-                        {month.shifts.map(shift => renderShiftItem(shift, true))}
-                      </div>
+                      <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto no-scrollbar">{month.shifts.map(shift => renderShiftItem(shift, true))}</div>
                     </motion.div>
                   )}
                 </AnimatePresence>

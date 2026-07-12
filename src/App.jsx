@@ -8,7 +8,7 @@ import Settings from './components/Settings';
 import { cn } from './utils';
 
 export default function App() {
-  const currency = <Coins size="1em" strokeWidth={2.5} className="inline-block relative -top-[1px] mr-1" />;
+  const currency = <Coins size="1em" strokeWidth={2.5} className="inline-block relative -top-px mr-1" />;
   const [activeTab, setActiveTab] = useState('dashboard');
   
   const [hourlyRate, setHourlyRate, rateLoaded] = useIndexedDB('hourlyRate', '15');
@@ -21,24 +21,78 @@ export default function App() {
   useEffect(() => {
     let interval;
     if (activeShift) {
-      setElapsed(Date.now() - activeShift.startTime);
-      interval = setInterval(() => setElapsed(Date.now() - activeShift.startTime), 1000);
+      const calculateElapsed = () => {
+        const now = Date.now();
+        let pauseTime = activeShift.totalPauseTime || 0;
+        if (activeShift.isPaused) {
+          pauseTime += (now - activeShift.pauseStartTime);
+        }
+        setElapsed(Math.max(0, now - activeShift.startTime - pauseTime));
+      };
+      
+      calculateElapsed(); // Сразу обновляем при рендере
+      interval = setInterval(calculateElapsed, 1000);
     } else {
       setElapsed(0);
     }
     return () => clearInterval(interval);
   }, [activeShift]);
 
-  const startShift = () => setActiveShift({ startTime: Date.now() });
+  const startShift = () => {
+    setActiveShift({ 
+      startTime: Date.now(),
+      isPaused: false,
+      totalPauseTime: 0,
+      pauseStartTime: null
+    });
+  };
+
+  const togglePause = () => {
+    if (!activeShift) return;
+    const now = Date.now();
+    
+    if (activeShift.isPaused) {
+      // Снимаем с паузы
+      const currentPauseDuration = now - activeShift.pauseStartTime;
+      setActiveShift({
+        ...activeShift,
+        isPaused: false,
+        totalPauseTime: (activeShift.totalPauseTime || 0) + currentPauseDuration,
+        pauseStartTime: null
+      });
+    } else {
+      // Ставим на паузу
+      setActiveShift({
+        ...activeShift,
+        isPaused: true,
+        pauseStartTime: now
+      });
+    }
+  };
 
   const stopShift = () => {
     if (!activeShift) return;
     const endTime = Date.now();
-    const durationMs = endTime - activeShift.startTime;
+    
+    // Считаем итоговую паузу, если смена была остановлена прямо во время паузы
+    let finalPauseTime = activeShift.totalPauseTime || 0;
+    if (activeShift.isPaused) {
+      finalPauseTime += (endTime - activeShift.pauseStartTime);
+    }
+
+    const durationMs = Math.max(0, endTime - activeShift.startTime - finalPauseTime);
     const rate = parseFloat(hourlyRate) || 0;
     const earned = (durationMs / 3600000) * rate;
 
-    const newShift = { id: Date.now(), startTime: activeShift.startTime, endTime, durationMs, earned };
+    const newShift = { 
+      id: Date.now(), 
+      startTime: activeShift.startTime, 
+      endTime, 
+      durationMs, 
+      earned,
+      pauseMs: finalPauseTime // Сохраняем время перерыва для истории
+    };
+    
     setShifts([newShift, ...shifts]);
     setActiveShift(null);
   };
@@ -51,7 +105,6 @@ export default function App() {
     );
   }
 
-  // Анимации для framer-motion
   const pageVariants = {
     initial: { opacity: 0, y: 15, scale: 0.98 },
     in: { opacity: 1, y: 0, scale: 1 },
@@ -60,20 +113,16 @@ export default function App() {
 
   return (
     <div className="h-[100dvh] w-full bg-[#0a0a0c] text-gray-100 flex flex-col font-sans overflow-hidden selection:bg-indigo-500/30">
+      <header className="bg-white/[0.01] backdrop-blur-xl px-6 py-5 border-b border-white/5 z-20">
+        <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 tracking-wide text-center">
+          Work<span className="text-indigo-400">Tracker</span>
+        </h1>
+      </header>
 
       <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900/40 via-[#0a0a0c] to-[#0a0a0c]">
-        {/* Обертка для переходов */}
         <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial="initial"
-            animate="in"
-            exit="out"
-            variants={pageVariants}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="h-full w-full absolute inset-0"
-          >
-            {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} startShift={startShift} stopShift={stopShift} elapsed={elapsed} hourlyRate={hourlyRate} currency={currency} />}
+          <motion.div key={activeTab} initial="initial" animate="in" exit="out" variants={pageVariants} transition={{ duration: 0.25, ease: "easeOut" }} className="h-full w-full absolute inset-0">
+            {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} startShift={startShift} stopShift={stopShift} togglePause={togglePause} elapsed={elapsed} hourlyRate={hourlyRate} currency={currency} />}
             {activeTab === 'history' && <History shifts={shifts} setShifts={setShifts} hourlyRate={hourlyRate} currency={currency} />}
             {activeTab === 'settings' && <Settings hourlyRate={hourlyRate} setHourlyRate={setHourlyRate} currency={currency} />}
           </motion.div>
@@ -87,14 +136,7 @@ export default function App() {
             { id: 'history', icon: HistoryIcon, label: 'История' },
             { id: 'settings', icon: SettingsIcon, label: 'Настройки' }
           ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 w-24 relative",
-                activeTab === tab.id ? "text-white bg-white/10 scale-100" : "text-gray-500 hover:text-gray-300 scale-95 hover:bg-white/5"
-              )}
-            >
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 w-24 relative", activeTab === tab.id ? "text-white bg-white/10 scale-100" : "text-gray-500 hover:text-gray-300 scale-95 hover:bg-white/5")}>
               <tab.icon size={22} className={cn("mb-1.5 transition-transform duration-300", activeTab === tab.id && "scale-110 text-indigo-400")} />
               <span className="text-[10px] uppercase font-bold tracking-widest">{tab.label}</span>
             </button>
