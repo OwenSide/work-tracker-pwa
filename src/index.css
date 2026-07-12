@@ -9,3 +9,10 @@ body {
   margin: 0;
   overscroll-behavior-y: none; /* Предотвращает "резинку" при скролле на телефонах */
 }
+
+html, body {
+  background-color: #0a0a0c; /* Наш фирменный темный цвет */
+  color: white;
+  /* Запрещаем резиновый скролл (bounce) на айфонах, чтобы не мелькал фон */
+  overscroll-behavior: none; 
+}

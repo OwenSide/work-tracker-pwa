@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import CountUp from 'react-countup';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils';
 
 export default function History({ shifts, setShifts, hourlyRate, currency }) {
+  const [activeTab, setActiveTab] = useState('current');
+  const [expandedArchive, setExpandedArchive] = useState(null);
+  
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
   const [manualDate, setManualDate] = useState('');
   const [manualStartTime, setManualStartTime] = useState('');
@@ -13,16 +17,74 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${hours} ч ${minutes} мин`;
   };
+
+  // Удаление ОДНОЙ смены (для текущего месяца)
+  const handleDeleteShift = (id) => {
+    if (window.confirm('Точно удалить эту смену?')) {
+      setShifts(shifts.filter(shift => shift.id !== id));
+    }
+  };
+
+  // Удаление ЦЕЛОГО МЕСЯЦА (для архива)
+  const handleDeleteMonth = (e, monthId, monthLabel) => {
+    e.stopPropagation(); // Чтобы при клике на корзину не открывался/закрывался список
+    if (window.confirm(`Точно удалить весь архив за ${monthLabel}?\nБудут безвозвратно удалены все смены этого месяца.`)) {
+      const [year, month] = monthId.split('-').map(Number);
+      
+      const updatedShifts = shifts.filter(shift => {
+        const d = new Date(shift.startTime);
+        // Оставляем только те смены, которые НЕ совпадают с удаляемым годом и месяцем
+        return !(d.getFullYear() === year && d.getMonth() === month);
+      });
+      
+      setShifts(updatedShifts);
+      if (expandedArchive === monthId) setExpandedArchive(null);
+    }
+  };
+
+  // Группировка смен
+  const { currentMonthData, archiveMonths } = useMemo(() => {
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
+    
+    const groups = {};
+    
+    shifts.forEach(shift => {
+      const d = new Date(shift.startTime);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      
+      if (!groups[key]) {
+        let monthName = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+        monthName = monthName.charAt(0).toUpperCase() + monthName.slice(1).replace(' г.', '');
+        
+        groups[key] = {
+          id: key,
+          label: monthName,
+          sortValue: d.getTime(),
+          shifts: [],
+          totalEarned: 0,
+          totalDuration: 0,
+        };
+      }
+      groups[key].shifts.push(shift);
+      groups[key].totalEarned += shift.earned;
+      groups[key].totalDuration += shift.durationMs;
+    });
+
+    const current = groups[currentKey] || { shifts: [], totalEarned: 0, totalDuration: 0 };
+    const archives = Object.values(groups)
+      .filter(g => g.id !== currentKey)
+      .sort((a, b) => b.sortValue - a.sortValue);
+
+    return { currentMonthData: current, archiveMonths: archives };
+  }, [shifts]);
 
   const handleAddManualShift = () => {
     if (!manualDate || !manualStartTime || !manualEndTime) return;
-
     const start = new Date(`${manualDate}T${manualStartTime}`);
     let end = new Date(`${manualDate}T${manualEndTime}`);
-
     if (end < start) end.setDate(end.getDate() + 1);
 
     const durationMs = end.getTime() - start.getTime();
@@ -38,83 +100,206 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     setManualEndTime('');
   };
 
-  const totalEarned = shifts.reduce((sum, shift) => sum + shift.earned, 0);
+  // Отрисовка одной карточки смены (hideDelete = true скроет корзину)
+  const renderShiftItem = (shift, hideDelete = false) => (
+    <div key={shift.id} className="bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-5 rounded-3xl border border-white/5 flex flex-col gap-3 group">
+      <div className="flex justify-between items-center">
+        <span className="text-gray-200 font-medium text-lg">
+          {new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+        </span>
+        <div className="flex items-center gap-3">
+          <span className="font-bold text-emerald-400 text-lg flex items-center gap-1">
+            <span>+</span><span className="flex items-center">{currency}</span>{shift.earned.toFixed(2)}
+          </span>
+          {!hideDelete && (
+            <button 
+              onClick={() => handleDeleteShift(shift.id)}
+              className="text-gray-600 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all"
+              title="Удалить смену"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="flex justify-between items-center bg-black/20 p-3 rounded-2xl">
+        <div className="flex items-center text-sm text-gray-400 font-medium">
+          <span>{new Date(shift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+          <ArrowRight size={14} className="mx-2 opacity-50" />
+          <span>{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+        </div>
+        <div className="flex items-center text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-xl font-mono text-sm">
+          <Clock size={12} className="mr-2" />
+          {formatTime(shift.durationMs)}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-6 h-full flex flex-col">
-      <div className="flex justify-between items-end mb-6 bg-white/[0.02] p-5 rounded-3xl border border-white/5">
-        <div>
-          <h2 className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">Всего заработано</h2>
+      {/* Карточка Итогов */}
+      <div className="flex justify-between items-end mb-6 bg-white/[0.02] p-5 rounded-3xl border border-white/5 relative overflow-hidden">
+        <div className="relative z-10">
+          <h2 className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">
+            {activeTab === 'current' ? 'Заработано в этом месяце' : 'Всего за всё время'}
+          </h2>
           <div className="text-3xl font-bold flex items-center">
             <span className="text-emerald-400 flex items-center mr-1">{currency}</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-              {/* МАГИЯ АНИМАЦИИ ЦИФР */}
-              <CountUp end={totalEarned} decimals={2} duration={1.5} separator=" " />
+              <CountUp 
+                key={activeTab}
+                end={activeTab === 'current' ? currentMonthData.totalEarned : shifts.reduce((s, sh) => s + sh.earned, 0)} 
+                decimals={2} 
+                duration={1} 
+                separator=" " 
+              />
             </span>
           </div>
         </div>
-        <div className="bg-emerald-500/10 p-3 rounded-2xl">
+        <div className="bg-emerald-500/10 p-3 rounded-2xl relative z-10">
           <Wallet className="text-emerald-400" size={28} />
         </div>
+        <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="flex justify-between items-center mb-4 px-1">
-        <h3 className="text-lg font-semibold text-white/90">История смен</h3>
-        <button 
-          onClick={() => setIsManualEntryOpen(!isManualEntryOpen)}
-          className={cn("p-2 rounded-xl transition-colors", isManualEntryOpen ? "bg-rose-500/20 text-rose-400" : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30")}
+      {/* Переключатель вкладок */}
+      <div className="flex bg-black/40 p-1.5 rounded-2xl mb-6 border border-white/5">
+        <button
+          onClick={() => setActiveTab('current')}
+          className={cn("flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2", 
+            activeTab === 'current' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300"
+          )}
         >
-          {isManualEntryOpen ? <X size={20} /> : <Plus size={20} />}
+          <Clock size={16} />
+          Текущий
+        </button>
+        <button
+          onClick={() => setActiveTab('archive')}
+          className={cn("flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2", 
+            activeTab === 'archive' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300"
+          )}
+        >
+          <CalendarDays size={16} />
+          Архив
         </button>
       </div>
 
-      {isManualEntryOpen && (
-        <div className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20 mb-4 flex flex-col gap-4">
-          <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Добавить вручную</h4>
-          <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 w-full" style={{colorScheme: 'dark'}} />
-          <div className="flex gap-3 items-center">
-            <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
-            <ArrowRight size={16} className="text-gray-500" />
-            <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
+      {/* Контент: Текущий месяц */}
+      {activeTab === 'current' && (
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 flex flex-col min-h-0">
+          <div className="flex justify-between items-center mb-4 px-1">
+            <h3 className="text-lg font-semibold text-white/90">Смены месяца</h3>
+            <button 
+              onClick={() => setIsManualEntryOpen(!isManualEntryOpen)}
+              className={cn("p-2 rounded-xl transition-colors", isManualEntryOpen ? "bg-rose-500/20 text-rose-400" : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30")}
+            >
+              {isManualEntryOpen ? <X size={20} /> : <Plus size={20} />}
+            </button>
           </div>
-          <button onClick={handleAddManualShift} disabled={!manualDate || !manualStartTime || !manualEndTime} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-3 rounded-xl transition-colors mt-2">
-            Сохранить смену
-          </button>
-        </div>
+
+          {isManualEntryOpen && (
+            <div className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20 mb-4 flex flex-col gap-4">
+              <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Добавить вручную</h4>
+              <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 w-full" style={{colorScheme: 'dark'}} />
+              <div className="flex gap-3 items-center">
+                <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
+                <ArrowRight size={16} className="text-gray-500" />
+                <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 flex-1" style={{colorScheme: 'dark'}} />
+              </div>
+              <button onClick={handleAddManualShift} disabled={!manualDate || !manualStartTime || !manualEndTime} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-3 rounded-xl transition-colors mt-2">
+                Сохранить
+              </button>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto space-y-3 pb-24 no-scrollbar">
+            {currentMonthData.shifts.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60">
+                <HistoryIcon size={64} strokeWidth={1} />
+                <p className="text-sm tracking-wide">В этом месяце смен пока нет</p>
+              </div>
+            ) : (
+              currentMonthData.shifts.map(shift => renderShiftItem(shift, false)) // false = показываем корзину
+            )}
+          </div>
+        </motion.div>
       )}
 
-      <div className="flex-1 overflow-y-auto space-y-3 pb-24 no-scrollbar">
-        {shifts.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60">
-            <HistoryIcon size={64} strokeWidth={1} />
-            <p className="text-sm tracking-wide">История пока пуста</p>
-          </div>
-        ) : (
-          shifts.map((shift, i) => (
-            <div key={shift.id} className="bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-5 rounded-3xl border border-white/5 flex flex-col gap-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-200 font-medium text-lg">
-                  {new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-                </span>
-                <span className="font-bold text-emerald-400 text-lg flex items-center gap-1">
-                  <span>+</span><span className="flex items-center">{currency}</span>{shift.earned.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center bg-black/20 p-3 rounded-2xl">
-                <div className="flex items-center text-sm text-gray-400 font-medium">
-                  <span>{new Date(shift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                  <ArrowRight size={14} className="mx-2 opacity-50" />
-                  <span>{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                </div>
-                <div className="flex items-center text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-xl font-mono text-sm">
-                  <Clock size={12} className="mr-2" />
-                  {formatTime(shift.durationMs)}
-                </div>
-              </div>
+      {/* Контент: Архив */}
+      {activeTab === 'archive' && (
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 overflow-y-auto space-y-4 pb-24 no-scrollbar">
+          {archiveMonths.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60">
+              <CalendarDays size={64} strokeWidth={1} />
+              <p className="text-sm tracking-wide">Архив пока пуст</p>
             </div>
-          ))
-        )}
-      </div>
+          ) : (
+            archiveMonths.map(month => (
+              <div key={month.id} className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
+                <div className="w-full flex flex-col hover:bg-white/[0.02] transition-colors relative">
+                  
+                  {/* Шапка карточки месяца (разделена на кликабельную зону раскрытия и кнопки) */}
+                  <div className="flex justify-between items-start w-full p-5">
+                    
+                    {/* Левая часть (кликабельная - раскрывает список) */}
+                    <div 
+                      className="flex-1 cursor-pointer flex flex-col gap-3" 
+                      onClick={() => setExpandedArchive(expandedArchive === month.id ? null : month.id)}
+                    >
+                      <span className="text-white font-semibold text-lg">{month.label}</span>
+                      <div className="flex gap-4">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Заработано</span>
+                          <span className="text-emerald-400 font-bold flex items-center text-sm">
+                            <span className="flex items-center mr-1">{currency}</span>{month.totalEarned.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="w-px bg-white/10"></div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Время</span>
+                          <span className="text-indigo-300 font-mono text-sm">{formatTime(month.totalDuration)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Правая часть (кнопка удаления и галочка) */}
+                    <div className="flex items-center gap-1 ml-4 mt-1">
+                      <button 
+                        onClick={(e) => handleDeleteMonth(e, month.id, month.label)}
+                        className="text-gray-600 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all z-10"
+                        title="Удалить весь месяц"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                      <div className="p-2 text-gray-400 pointer-events-none">
+                        {expandedArchive === month.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+                
+                {/* Раскрывающийся список смен архива */}
+                <AnimatePresence>
+                  {expandedArchive === month.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="border-t border-white/5 bg-black/20"
+                    >
+                      <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto no-scrollbar">
+                        {month.shifts.map(shift => renderShiftItem(shift, true))} {/* true = скрываем корзину внутри списка */}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))
+          )}
+        </motion.div>
+      )}
     </div>
   );
 }

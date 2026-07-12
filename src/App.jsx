@@ -60,11 +60,6 @@ export default function App() {
 
   return (
     <div className="h-[100dvh] w-full bg-[#0a0a0c] text-gray-100 flex flex-col font-sans overflow-hidden selection:bg-indigo-500/30">
-      <header className="bg-white/[0.01] backdrop-blur-xl px-6 py-5 border-b border-white/5 z-20">
-        <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 tracking-wide text-center">
-          Work<span className="text-indigo-400">Tracker</span>
-        </h1>
-      </header>
 
       <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900/40 via-[#0a0a0c] to-[#0a0a0c]">
         {/* Обертка для переходов */}
