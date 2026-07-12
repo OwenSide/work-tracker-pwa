@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, History as HistoryIcon, Settings as SettingsIcon, Coins } from 'lucide-react';
+import { Clock, History as HistoryIcon, Settings as SettingsIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useIndexedDB } from './db';
 import Dashboard from './components/Dashboard';
@@ -8,15 +8,16 @@ import Settings from './components/Settings';
 import { cn } from './utils';
 
 export default function App() {
-  const currency = <Coins size="1em" strokeWidth={2.5} className="inline-block relative -top-px mr-1" />;
   const [activeTab, setActiveTab] = useState('dashboard');
   
+  // Здесь мы загружаем и сохраняем валюту
+  const [currencySymbol, setCurrencySymbol, currencyLoaded] = useIndexedDB('currencySymbol', '$');
   const [hourlyRate, setHourlyRate, rateLoaded] = useIndexedDB('hourlyRate', '15');
   const [activeShift, setActiveShift, shiftLoaded] = useIndexedDB('activeShift', null);
   const [shifts, setShifts, shiftsLoaded] = useIndexedDB('shifts', []);
   const [elapsed, setElapsed] = useState(0);
 
-  const isAppReady = rateLoaded && shiftLoaded && shiftsLoaded;
+  const isAppReady = rateLoaded && shiftLoaded && shiftsLoaded && currencyLoaded;
 
   useEffect(() => {
     let interval;
@@ -30,7 +31,7 @@ export default function App() {
         setElapsed(Math.max(0, now - activeShift.startTime - pauseTime));
       };
       
-      calculateElapsed(); // Сразу обновляем при рендере
+      calculateElapsed();
       interval = setInterval(calculateElapsed, 1000);
     } else {
       setElapsed(0);
@@ -52,7 +53,6 @@ export default function App() {
     const now = Date.now();
     
     if (activeShift.isPaused) {
-      // Снимаем с паузы
       const currentPauseDuration = now - activeShift.pauseStartTime;
       setActiveShift({
         ...activeShift,
@@ -61,7 +61,6 @@ export default function App() {
         pauseStartTime: null
       });
     } else {
-      // Ставим на паузу
       setActiveShift({
         ...activeShift,
         isPaused: true,
@@ -74,7 +73,6 @@ export default function App() {
     if (!activeShift) return;
     const endTime = Date.now();
     
-    // Считаем итоговую паузу, если смена была остановлена прямо во время паузы
     let finalPauseTime = activeShift.totalPauseTime || 0;
     if (activeShift.isPaused) {
       finalPauseTime += (endTime - activeShift.pauseStartTime);
@@ -90,7 +88,7 @@ export default function App() {
       endTime, 
       durationMs, 
       earned,
-      pauseMs: finalPauseTime // Сохраняем время перерыва для истории
+      pauseMs: finalPauseTime
     };
     
     setShifts([newShift, ...shifts]);
@@ -122,9 +120,11 @@ export default function App() {
       <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900/40 via-[#0a0a0c] to-[#0a0a0c]">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial="initial" animate="in" exit="out" variants={pageVariants} transition={{ duration: 0.25, ease: "easeOut" }} className="h-full w-full absolute inset-0">
-            {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} startShift={startShift} stopShift={stopShift} togglePause={togglePause} elapsed={elapsed} hourlyRate={hourlyRate} currency={currency} />}
-            {activeTab === 'history' && <History shifts={shifts} setShifts={setShifts} hourlyRate={hourlyRate} currency={currency} />}
-            {activeTab === 'settings' && <Settings hourlyRate={hourlyRate} setHourlyRate={setHourlyRate} currency={currency} />}
+            {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} startShift={startShift} stopShift={stopShift} togglePause={togglePause} elapsed={elapsed} hourlyRate={hourlyRate} currency={currencySymbol} />}
+            {activeTab === 'history' && <History shifts={shifts} setShifts={setShifts} hourlyRate={hourlyRate} currency={currencySymbol} />}
+            
+            {/* ВОТ ЗДЕСЬ ПЕРЕДАЕТСЯ setCurrencySymbol */}
+            {activeTab === 'settings' && <Settings hourlyRate={hourlyRate} setHourlyRate={setHourlyRate} currency={currencySymbol} setCurrency={setCurrencySymbol} shifts={shifts} setShifts={setShifts} />}
           </motion.div>
         </AnimatePresence>
       </main>
