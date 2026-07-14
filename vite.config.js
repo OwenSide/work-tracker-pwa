@@ -19,9 +19,10 @@ export default defineConfig({
         icons: [
           {
             // Стандартная иконка для установки (можешь потом заменить ссылку на свою)
-            src: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+            src: 'icon-512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }
