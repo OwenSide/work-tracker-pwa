@@ -10,14 +10,19 @@ import { cn } from './utils';
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Здесь мы загружаем и сохраняем валюту
-  const [currencySymbol, setCurrencySymbol, currencyLoaded] = useIndexedDB('currencySymbol', '$');
-  const [hourlyRate, setHourlyRate, rateLoaded] = useIndexedDB('hourlyRate', '15');
-  const [activeShift, setActiveShift, shiftLoaded] = useIndexedDB('activeShift', null);
+  // Базовые настройки
+  const [currencySymbol, setCurrencySymbol, currencyLoaded] = useIndexedDB('currencySymbol', 'zł');
   const [shifts, setShifts, shiftsLoaded] = useIndexedDB('shifts', []);
+  const [activeShift, setActiveShift, shiftLoaded] = useIndexedDB('activeShift', null);
   const [elapsed, setElapsed] = useState(0);
 
-  const isAppReady = rateLoaded && shiftLoaded && shiftsLoaded && currencyLoaded;
+  // Новые настройки (Тип договора и налоги)
+  const [contractType, setContractType, contractLoaded] = useIndexedDB('contractType', 'zlecenie'); 
+  const [hourlyRate, setHourlyRate, rateLoaded] = useIndexedDB('hourlyRate', '28.10'); 
+  const [monthlyRate, setMonthlyRate, monthlyLoaded] = useIndexedDB('monthlyRate', '4300'); 
+  const [taxStatus, setTaxStatus, taxLoaded] = useIndexedDB('taxStatus', 'standard'); 
+
+  const isAppReady = rateLoaded && shiftLoaded && shiftsLoaded && currencyLoaded && contractLoaded && monthlyLoaded && taxLoaded;
 
   useEffect(() => {
     let interval;
@@ -39,12 +44,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, [activeShift]);
 
-  const startShift = () => {
+  const startShift = (isHoliday = false) => {
     setActiveShift({ 
       startTime: Date.now(),
       isPaused: false,
       totalPauseTime: 0,
-      pauseStartTime: null
+      pauseStartTime: null,
+      isHoliday
     });
   };
 
@@ -69,18 +75,63 @@ export default function App() {
     }
   };
 
+  const calculateEarnedNetto = (durationMs, shiftStart, isHoliday) => {
+    const hoursElapsed = durationMs / 3600000;
+    let bruttoHour = 0;
+
+    // Высчитываем стоимость часа брутто
+    if (contractType === 'oprace') {
+      const startD = new Date(shiftStart);
+      const daysInMonth = new Date(startD.getFullYear(), startD.getMonth() + 1, 0).getDate();
+      let workDays = 0;
+      for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(startD.getFullYear(), startD.getMonth(), i).getDay();
+        if (d !== 0 && d !== 6) workDays++;
+      }
+      bruttoHour = parseFloat(monthlyRate) / (workDays * 8) || 0;
+    } else {
+      bruttoHour = parseFloat(hourlyRate) || 0;
+    }
+
+    // ИСПРАВЛЕННАЯ ЛОГИКА НАЛОГОВ
+    let multiplier = 0.73; // Стандарт (ZUS + PIT)
+    
+    if (contractType === 'zlecenie') {
+      if (taxStatus === 'student') multiplier = 1; // Студент на злецении = 100%
+      else if (taxStatus === 'under26') multiplier = 0.78; // PIT-0, платит ZUS
+    } else if (contractType === 'oprace') {
+      // На умове о праце студент тоже платит ZUS. Поэтому ставка как у PIT-0
+      if (taxStatus === 'student' || taxStatus === 'under26') multiplier = 0.78;
+      else multiplier = 0.73;
+    }
+
+    const nettoHour = bruttoHour * multiplier;
+
+    // Надбавки
+    if (contractType === 'oprace') {
+      const isWeekend = new Date(shiftStart).getDay() === 0 || new Date(shiftStart).getDay() === 6;
+      if (isHoliday || isWeekend) {
+        return hoursElapsed * (nettoHour * 2); // 100%
+      } else {
+        if (hoursElapsed > 8) {
+          return (8 * nettoHour) + ((hoursElapsed - 8) * (nettoHour * 1.5)); // 50%
+        }
+        return hoursElapsed * nettoHour;
+      }
+    }
+
+    return hoursElapsed * nettoHour;
+  };
+
   const stopShift = () => {
     if (!activeShift) return;
     const endTime = Date.now();
     
     let finalPauseTime = activeShift.totalPauseTime || 0;
-    if (activeShift.isPaused) {
-      finalPauseTime += (endTime - activeShift.pauseStartTime);
-    }
+    if (activeShift.isPaused) finalPauseTime += (endTime - activeShift.pauseStartTime);
 
     const durationMs = Math.max(0, endTime - activeShift.startTime - finalPauseTime);
-    const rate = parseFloat(hourlyRate) || 0;
-    const earned = (durationMs / 3600000) * rate;
+    const earned = calculateEarnedNetto(durationMs, activeShift.startTime, activeShift.isHoliday);
 
     const newShift = { 
       id: Date.now(), 
@@ -88,7 +139,8 @@ export default function App() {
       endTime, 
       durationMs, 
       earned,
-      pauseMs: finalPauseTime
+      pauseMs: finalPauseTime,
+      note: activeShift.isHoliday ? '🎁 Праздник (x2)' : ''
     };
     
     setShifts([newShift, ...shifts]);
@@ -103,36 +155,28 @@ export default function App() {
     );
   }
 
-  const pageVariants = {
-    initial: { opacity: 0, y: 15, scale: 0.98 },
-    in: { opacity: 1, y: 0, scale: 1 },
-    out: { opacity: 0, y: -15, scale: 0.98 }
-  };
-
   return (
-    <div className="h-[100dvh] w-full bg-[#0a0a0c] text-gray-100 flex flex-col font-sans overflow-hidden selection:bg-indigo-500/30">
+    <div className="h-[100dvh] w-full bg-[#0a0a0c] text-gray-100 flex flex-col font-sans overflow-hidden">
 
       <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900/40 via-[#0a0a0c] to-[#0a0a0c]">
         <AnimatePresence mode="wait">
-          <motion.div key={activeTab} initial="initial" animate="in" exit="out" variants={pageVariants} transition={{ duration: 0.25, ease: "easeOut" }} className="h-full w-full absolute inset-0">
-            {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} startShift={startShift} stopShift={stopShift} togglePause={togglePause} elapsed={elapsed} hourlyRate={hourlyRate} currency={currencySymbol} />}
-            {activeTab === 'history' && <History shifts={shifts} setShifts={setShifts} hourlyRate={hourlyRate} currency={currencySymbol} />}
-            
-            {/* ВОТ ЗДЕСЬ ПЕРЕДАЕТСЯ setCurrencySymbol */}
-            {activeTab === 'settings' && <Settings hourlyRate={hourlyRate} setHourlyRate={setHourlyRate} currency={currencySymbol} setCurrency={setCurrencySymbol} shifts={shifts} setShifts={setShifts} />}
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.2 }} className="h-full w-full absolute inset-0">
+            {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} startShift={startShift} stopShift={stopShift} togglePause={togglePause} elapsed={elapsed} contractType={contractType} hourlyRate={hourlyRate} monthlyRate={monthlyRate} taxStatus={taxStatus} currency={currencySymbol} />}
+            {activeTab === 'history' && <History shifts={shifts} setShifts={setShifts} hourlyRate={hourlyRate} currency={currencySymbol} contractType={contractType} monthlyRate={monthlyRate} taxStatus={taxStatus} />}
+            {activeTab === 'settings' && <Settings contractType={contractType} setContractType={setContractType} hourlyRate={hourlyRate} setHourlyRate={setHourlyRate} monthlyRate={monthlyRate} setMonthlyRate={setMonthlyRate} taxStatus={taxStatus} setTaxStatus={setTaxStatus} currency={currencySymbol} setCurrency={setCurrencySymbol} shifts={shifts} setShifts={setShifts} />}
           </motion.div>
         </AnimatePresence>
       </main>
 
       <div className="absolute bottom-0 w-full p-4 z-20 pointer-events-none">
-        <nav className="pointer-events-auto bg-gray-900/80 backdrop-blur-2xl border border-white/10 flex justify-around p-2 rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-w-sm mx-auto">
+        <nav className="pointer-events-auto bg-gray-900/80 backdrop-blur-2xl border border-white/10 flex justify-around p-2 rounded-3xl max-w-sm mx-auto">
           {[
             { id: 'dashboard', icon: Clock, label: 'Таймер' },
             { id: 'history', icon: HistoryIcon, label: 'История' },
             { id: 'settings', icon: SettingsIcon, label: 'Настройки' }
           ].map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 w-24 relative", activeTab === tab.id ? "text-white bg-white/10 scale-100" : "text-gray-500 hover:text-gray-300 scale-95 hover:bg-white/5")}>
-              <tab.icon size={22} className={cn("mb-1.5 transition-transform duration-300", activeTab === tab.id && "scale-110 text-indigo-400")} />
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 w-24 relative", activeTab === tab.id ? "text-white bg-white/10 scale-100" : "text-gray-500 hover:text-gray-300 scale-95")}>
+              <tab.icon size={22} className={cn("mb-1.5 transition-transform", activeTab === tab.id && "text-indigo-400")} />
               <span className="text-[10px] uppercase font-bold tracking-widest">{tab.label}</span>
             </button>
           ))}

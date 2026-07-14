@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare } from 'lucide-react';
-import CountUp from 'react-countup';
+import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils';
 
-export default function History({ shifts, setShifts, hourlyRate, currency }) {
+export default function History({ shifts, setShifts, hourlyRate, currency, contractType, monthlyRate, taxStatus }) {
   const [activeTab, setActiveTab] = useState('current');
   const [expandedArchive, setExpandedArchive] = useState(null);
   
@@ -15,6 +14,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   const [manualEndTime, setManualEndTime] = useState('');
   const [manualBreak, setManualBreak] = useState('');
   const [manualNote, setManualNote] = useState('');
+  const [manualHoliday, setManualHoliday] = useState(false);
 
   // Редактирование
   const [editingShiftId, setEditingShiftId] = useState(null);
@@ -23,9 +23,10 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
   const [editEndTime, setEditEndTime] = useState('');
   const [editBreak, setEditBreak] = useState('');
   const [editNote, setEditNote] = useState('');
+  const [editHoliday, setEditHoliday] = useState(false);
 
   const formatTime = (ms) => {
-    const totalSeconds = Math.floor(Math.max(0, ms) / 1000);
+    const totalSeconds = Math.floor(Math.max(0, Number(ms) || 0) / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     return `${hours} ч ${minutes} мин`;
@@ -47,6 +48,50 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     }
   };
 
+  // УМНЫЙ КАЛЬКУЛЯТОР ДЕНЕГ
+  const calculateEarnedNetto = (durationMs, shiftStartMs, isHoliday) => {
+    const hoursElapsed = (Number(durationMs) || 0) / 3600000;
+    let bruttoHour = 0;
+
+    if (contractType === 'oprace') {
+      const startD = new Date(shiftStartMs);
+      const daysInMonth = new Date(startD.getFullYear(), startD.getMonth() + 1, 0).getDate();
+      let workDays = 0;
+      for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(startD.getFullYear(), startD.getMonth(), i).getDay();
+        if (d !== 0 && d !== 6) workDays++;
+      }
+      bruttoHour = parseFloat(monthlyRate) / (workDays * 8) || 0;
+    } else {
+      bruttoHour = parseFloat(hourlyRate) || 0;
+    }
+
+    let multiplier = 0.73; 
+    if (contractType === 'zlecenie') {
+      if (taxStatus === 'student') multiplier = 1;
+      else if (taxStatus === 'under26') multiplier = 0.78;
+    } else if (contractType === 'oprace') {
+      if (taxStatus === 'student' || taxStatus === 'under26') multiplier = 0.78;
+      else multiplier = 0.73;
+    }
+
+    const nettoHour = bruttoHour * multiplier;
+
+    if (contractType === 'oprace') {
+      const isWeekend = new Date(shiftStartMs).getDay() === 0 || new Date(shiftStartMs).getDay() === 6;
+      if (isHoliday || isWeekend) {
+        return hoursElapsed * (nettoHour * 2); 
+      } else {
+        if (hoursElapsed > 8) {
+          return (8 * nettoHour) + ((hoursElapsed - 8) * (nettoHour * 1.5)); 
+        }
+        return hoursElapsed * nettoHour;
+      }
+    }
+
+    return hoursElapsed * nettoHour;
+  };
+
   const handleEditClick = (shift) => {
     setIsManualEntryOpen(false);
 
@@ -56,7 +101,15 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     setEditStartTime(`${String(startD.getHours()).padStart(2, '0')}:${String(startD.getMinutes()).padStart(2, '0')}`);
     setEditEndTime(`${String(endD.getHours()).padStart(2, '0')}:${String(endD.getMinutes()).padStart(2, '0')}`);
     setEditBreak(shift.pauseMs ? Math.round(shift.pauseMs / 60000).toString() : '');
-    setEditNote(shift.note || '');
+    
+    const isHol = shift.isHoliday === true || (shift.note && typeof shift.note === 'string' && shift.note.includes('Праздник'));
+    setEditHoliday(isHol);
+    
+    let cleanNote = shift.note || '';
+    if (cleanNote.includes('🎁 Праздник (x2) | ')) cleanNote = cleanNote.replace('🎁 Праздник (x2) | ', '');
+    else if (cleanNote.includes('🎁 Праздник (x2)')) cleanNote = cleanNote.replace('🎁 Праздник (x2)', '');
+    
+    setEditNote(cleanNote.trim());
     setEditingShiftId(shift.id);
   };
 
@@ -70,11 +123,15 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
 
     const pauseMs = (parseInt(editBreak) || 0) * 60000;
     const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
-    const rate = parseFloat(hourlyRate) || 0;
-    const earned = (durationMs / 3600000) * rate;
-    const note = editNote.trim();
+    
+    const earned = calculateEarnedNetto(durationMs, start.getTime(), editHoliday);
+    
+    let finalNote = editNote.trim();
+    if (contractType === 'oprace' && editHoliday) {
+      finalNote = finalNote ? `🎁 Праздник (x2) | ${finalNote}` : '🎁 Праздник (x2)';
+    }
 
-    const updatedShifts = shifts.map(shift => shift.id === editingShiftId ? { ...shift, startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note } : shift)
+    const updatedShifts = shifts.map(shift => shift.id === editingShiftId ? { ...shift, startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note: finalNote, isHoliday: editHoliday } : shift)
       .sort((a, b) => b.startTime - a.startTime);
 
     setShifts(updatedShifts);
@@ -91,51 +148,80 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
 
     const pauseMs = (parseInt(manualBreak) || 0) * 60000;
     const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
-    const rate = parseFloat(hourlyRate) || 0;
-    const earned = (durationMs / 3600000) * rate;
-    const note = manualNote.trim();
+    
+    const earned = calculateEarnedNetto(durationMs, start.getTime(), manualHoliday);
+    
+    let finalNote = manualNote.trim();
+    if (contractType === 'oprace' && manualHoliday) {
+      finalNote = finalNote ? `🎁 Праздник (x2) | ${finalNote}` : '🎁 Праздник (x2)';
+    }
 
-    const newShift = { id: Date.now(), startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note };
+    const newShift = { id: Date.now(), startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note: finalNote, isHoliday: manualHoliday };
     setShifts([newShift, ...shifts].sort((a, b) => b.startTime - a.startTime));
     
     setIsManualEntryOpen(false);
-    setManualDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote('');
+    setManualDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote(''); setManualHoliday(false);
   };
 
-  const { currentMonthData, archiveMonths } = useMemo(() => {
+  // ИСПРАВЛЕННАЯ ЛОГИКА АРХИВА И ПОДСЧЕТОВ
+  const { currentMonthData, archiveMonths, globalStats } = useMemo(() => {
     const now = new Date();
     const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
     const groups = {};
     
+    const gStats = { earned: 0, overtimeMs: 0 };
+    
     shifts.forEach(shift => {
       const d = new Date(shift.startTime);
       const key = `${d.getFullYear()}-${d.getMonth()}`;
+      
       if (!groups[key]) {
         let monthName = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
         monthName = monthName.charAt(0).toUpperCase() + monthName.slice(1).replace(' г.', '');
-        groups[key] = { id: key, label: monthName, sortValue: d.getTime(), shifts: [], totalEarned: 0, totalDuration: 0 };
+        groups[key] = { 
+          id: key, label: monthName, sortValue: d.getTime(), shifts: [], 
+          earned: 0, totalDuration: 0, overtimeMs: 0 
+        };
       }
+      
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      const isHol = shift.isHoliday === true || (typeof shift.note === 'string' && shift.note.includes('Праздник'));
+      
+      let shiftOvertime = 0;
+      const safeDuration = Number(shift.durationMs) || 0;
+
+      if (isHol || isWeekend) {
+        shiftOvertime = safeDuration; 
+      } else {
+        shiftOvertime = Math.max(0, safeDuration - (8 * 3600000)); 
+      }
+
+      // ЖЕЛЕЗОБЕТОННАЯ ЗАЩИТА: Если earned пустой или NaN, он станет 0
+      const safeEarned = Number(shift.earned) || 0;
+
       groups[key].shifts.push(shift);
-      groups[key].totalEarned += shift.earned;
-      groups[key].totalDuration += shift.durationMs;
+      groups[key].earned += safeEarned; 
+      groups[key].totalDuration += safeDuration;
+      groups[key].overtimeMs += shiftOvertime;
+      
+      gStats.earned += safeEarned;
+      gStats.overtimeMs += shiftOvertime;
     });
 
-    const current = groups[currentKey] || { shifts: [], totalEarned: 0, totalDuration: 0 };
+    const current = groups[currentKey] || { shifts: [], earned: 0, totalDuration: 0, overtimeMs: 0 }; 
     const archives = Object.values(groups).filter(g => g.id !== currentKey).sort((a, b) => b.sortValue - a.sortValue);
-    return { currentMonthData: current, archiveMonths: archives };
+    
+    return { currentMonthData: current, archiveMonths: archives, globalStats: gStats };
   }, [shifts]);
 
-  // Вычисляем сегодняшнюю дату
   const today = new Date();
   const maxDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-  // ЖЕСТКИЙ КОНТРОЛЬ: Функция, которая перехватывает ввод даты
   const handleSafeDateChange = (e, setter) => {
     const selectedDate = e.target.value;
-    // Сравниваем строки YYYY-MM-DD. Если выбранная дата больше сегодняшней - блокируем
     if (selectedDate > maxDateString) {
       alert('Нельзя выбрать дату из будущего!');
-      setter(maxDateString); // Сбрасываем на сегодня
+      setter(maxDateString);
     } else {
       setter(selectedDate);
     }
@@ -154,7 +240,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             type="date" 
             max={maxDateString} 
             value={editDate} 
-            onChange={(e) => handleSafeDateChange(e, setEditDate)} // Используем безопасный обработчик
+            onChange={(e) => handleSafeDateChange(e, setEditDate)}
             className="block min-w-0 w-full max-w-full appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" 
             style={{colorScheme: 'dark'}} 
           />
@@ -176,6 +262,15 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
             </div>
           </div>
 
+          {contractType === 'oprace' && (
+            <button 
+              onClick={() => setEditHoliday(!editHoliday)}
+              className={cn("w-full py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border", editHoliday ? "bg-amber-500/20 text-amber-400 border-amber-500/50" : "bg-black/50 text-gray-500 border-white/10 hover:bg-white/10")}
+            >
+              <Gift size={16} /> Праздничный тариф (x2)
+            </button>
+          )}
+
           <div className="flex gap-2 mt-1">
             <button onClick={handleSaveEdit} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">Сохранить</button>
           </div>
@@ -189,7 +284,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
           <span className="text-gray-200 font-medium text-lg">{new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
           <div className="flex items-center gap-1">
             <span className="font-bold text-emerald-400 text-lg flex items-center gap-1 mr-2">
-              <span>+</span><span className="flex items-center">{currency}</span>{shift.earned.toFixed(2)}
+              <span>+</span><span className="flex items-center">{currency}</span>{(Number(shift.earned) || 0).toFixed(2)}
             </span>
             {!hideDelete && (
               <>
@@ -230,19 +325,34 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
     );
   };
 
+  const displayStats = activeTab === 'current' ? currentMonthData : globalStats;
+  const showBadges = contractType === 'oprace' && activeTab === 'current' && displayStats.overtimeMs > 0;
+  
+  // Безопасный вывод суммы
+  const mainAmount = Number(displayStats?.earned || 0).toFixed(2);
+
   return (
     <div className="p-6 h-full flex flex-col">
       <div className="flex justify-between items-end mb-6 bg-white/[0.02] p-5 rounded-3xl border border-white/5 relative overflow-hidden">
-        <div className="relative z-10">
+        <div className="relative z-10 w-full pr-12">
           <h2 className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">{activeTab === 'current' ? 'Заработано в этом месяце' : 'Всего за всё время'}</h2>
           <div className="text-3xl font-bold flex items-center">
             <span className="text-emerald-400 flex items-center mr-1">{currency}</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-              <CountUp key={activeTab} end={activeTab === 'current' ? currentMonthData.totalEarned : shifts.reduce((s, sh) => s + sh.earned, 0)} decimals={2} duration={1} separator=" " />
+            {/* Прямой вывод текста вместо анимации CountUp */}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight">
+              {mainAmount}
             </span>
           </div>
+          
+          {showBadges && (
+            <div className="mt-2.5 flex items-center gap-1.5 text-xs font-bold text-amber-400 bg-amber-500/10 w-fit px-3 py-1.5 rounded-xl border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+              <Flame size={14} className="animate-pulse" />
+              <span className="uppercase tracking-widest">Переработки: {formatTime(displayStats.overtimeMs)}</span>
+            </div>
+          )}
         </div>
-        <div className="bg-emerald-500/10 p-3 rounded-2xl relative z-10"><Wallet className="text-emerald-400" size={28} /></div>
+        
+        <div className="absolute right-5 top-5 bg-emerald-500/10 p-3 rounded-2xl z-10"><Wallet className="text-emerald-400" size={28} /></div>
         <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
       </div>
 
@@ -274,7 +384,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
                 type="date" 
                 max={maxDateString} 
                 value={manualDate} 
-                onChange={(e) => handleSafeDateChange(e, setManualDate)} // Используем безопасный обработчик
+                onChange={(e) => handleSafeDateChange(e, setManualDate)}
                 className="block min-w-0 w-full max-w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" 
                 style={{colorScheme: 'dark'}} 
               />
@@ -295,6 +405,15 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
                   <input type="text" placeholder="Заметка (необязательно)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" />
                 </div>
               </div>
+
+              {contractType === 'oprace' && (
+                <button 
+                  onClick={() => setManualHoliday(!manualHoliday)}
+                  className={cn("w-full py-3 rounded-xl text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border", manualHoliday ? "bg-amber-500/20 text-amber-400 border-amber-500/50" : "bg-black/40 text-gray-500 border-white/5 hover:bg-white/5")}
+                >
+                  <Gift size={16} /> Праздничный тариф (x2)
+                </button>
+              )}
 
               <button onClick={handleAddManualShift} disabled={!manualDate || !manualStartTime || !manualEndTime} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-3 rounded-xl transition-colors mt-2">Сохранить</button>
             </div>
@@ -317,15 +436,28 @@ export default function History({ shifts, setShifts, hourlyRate, currency }) {
               <div key={month.id} className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
                 <div className="w-full flex flex-col hover:bg-white/[0.02] transition-colors relative">
                   <div className="flex justify-between items-start w-full p-5">
-                    <div className="flex-1 cursor-pointer flex flex-col gap-3" onClick={() => setExpandedArchive(expandedArchive === month.id ? null : month.id)}>
+                    <div className="flex-1 cursor-pointer flex flex-col gap-2" onClick={() => setExpandedArchive(expandedArchive === month.id ? null : month.id)}>
                       <span className="text-white font-semibold text-lg">{month.label}</span>
-                      <div className="flex gap-4">
-                        <div className="flex flex-col"><span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Заработано</span><span className="text-emerald-400 font-bold flex items-center text-sm"><span className="flex items-center mr-1">{currency}</span>{month.totalEarned.toFixed(2)}</span></div>
-                        <div className="w-px bg-white/10"></div>
-                        <div className="flex flex-col"><span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Время</span><span className="text-indigo-300 font-mono text-sm">{formatTime(month.totalDuration)}</span></div>
+                      
+                      <div className="flex flex-wrap gap-4 mt-1">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Заработано</span>
+                          <span className="text-emerald-400 font-bold flex items-center text-sm"><span className="flex items-center mr-1">{currency}</span>{(Number(month.earned) || 0).toFixed(2)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Всего часов</span>
+                          <span className="text-indigo-300 font-mono text-sm">{formatTime(month.totalDuration)}</span>
+                        </div>
+                        
+                        {contractType === 'oprace' && month.overtimeMs > 0 && (
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-amber-500/70 uppercase tracking-wider font-bold mb-0.5 flex items-center gap-1"><Flame size={10}/> Переработки</span>
+                            <span className="text-amber-400 font-mono text-sm">{formatTime(month.overtimeMs)}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 ml-4 mt-1">
+                    <div className="flex items-center gap-1 ml-2 mt-1">
                       <button onClick={(e) => handleDeleteMonth(e, month.id, month.label)} className="text-gray-600 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all z-10"><Trash2 size={18} /></button>
                       <div className="p-2 text-gray-400 pointer-events-none">{expandedArchive === month.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</div>
                     </div>
