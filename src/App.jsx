@@ -154,10 +154,9 @@ export default function App() {
   return (
     <div className="h-[100dvh] w-full bg-[#0a0a0c] text-gray-100 flex flex-col font-sans overflow-hidden">
       
-      {/* ИСПРАВЛЕНО: Добавлен контейнер для отступа сверху (Safe Area для iOS) */}
-      <div style={{ pt: 'max(1rem, env(safe-area-inset-top))' }} className="w-full bg-transparent shrink-0" />
+      {/* ИСПРАВЛЕНО: Распорка сверху с правильным свойством height. Берет отступ челки, но не меньше 1.5rem (24px) */}
+      <div style={{ height: 'max(1.5rem, env(safe-area-inset-top))' }} className="w-full shrink-0 z-50 pointer-events-none" />
 
-      {/* Изменили точку начала радиального градиента на ellipse_at_center, чтобы при смещении контента фон оставался центрированным */}
       <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900/40 via-[#0a0a0c] to-[#0a0a0c]">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.2 }} className="h-full w-full absolute inset-0">
@@ -168,8 +167,12 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <div className="absolute bottom-0 w-full p-4 z-20 pointer-events-none">
-        <nav className="pointer-events-auto bg-gray-900/80 backdrop-blur-2xl border border-white/10 border-b-0 flex justify-around p-2 rounded-3xl max-w-sm mx-auto" style={{ pb: 'calc(8px + env(safe-area-inset-bottom))' }}>
+      {/* ИСПРАВЛЕНО: Добавлен paddingBottom вместо pb для отступа от полоски "Домой" на iOS */}
+      <div 
+        className="absolute bottom-0 w-full px-4 z-20 pointer-events-none"
+        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+      >
+        <nav className="pointer-events-auto bg-gray-900/80 backdrop-blur-2xl border border-white/10 flex justify-around p-2 rounded-3xl max-w-sm mx-auto shadow-2xl">
           {[
             { id: 'dashboard', icon: Clock, label: 'Таймер' },
             { id: 'history', icon: HistoryIcon, label: 'История' },
