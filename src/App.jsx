@@ -79,7 +79,6 @@ export default function App() {
     const hoursElapsed = durationMs / 3600000;
     let bruttoHour = 0;
 
-    // Высчитываем стоимость часа брутто
     if (contractType === 'oprace') {
       const startD = new Date(shiftStart);
       const daysInMonth = new Date(startD.getFullYear(), startD.getMonth() + 1, 0).getDate();
@@ -93,28 +92,25 @@ export default function App() {
       bruttoHour = parseFloat(hourlyRate) || 0;
     }
 
-    // ИСПРАВЛЕННАЯ ЛОГИКА НАЛОГОВ
-    let multiplier = 0.73; // Стандарт (ZUS + PIT)
+    let multiplier = 0.73; 
     
     if (contractType === 'zlecenie') {
-      if (taxStatus === 'student') multiplier = 1; // Студент на злецении = 100%
-      else if (taxStatus === 'under26') multiplier = 0.78; // PIT-0, платит ZUS
+      if (taxStatus === 'student') multiplier = 1; 
+      else if (taxStatus === 'under26') multiplier = 0.78; 
     } else if (contractType === 'oprace') {
-      // На умове о праце студент тоже платит ZUS. Поэтому ставка как у PIT-0
       if (taxStatus === 'student' || taxStatus === 'under26') multiplier = 0.78;
       else multiplier = 0.73;
     }
 
     const nettoHour = bruttoHour * multiplier;
 
-    // Надбавки
     if (contractType === 'oprace') {
       const isWeekend = new Date(shiftStart).getDay() === 0 || new Date(shiftStart).getDay() === 6;
       if (isHoliday || isWeekend) {
-        return hoursElapsed * (nettoHour * 2); // 100%
+        return hoursElapsed * (nettoHour * 2); 
       } else {
         if (hoursElapsed > 8) {
-          return (8 * nettoHour) + ((hoursElapsed - 8) * (nettoHour * 1.5)); // 50%
+          return (8 * nettoHour) + ((hoursElapsed - 8) * (nettoHour * 1.5)); 
         }
         return hoursElapsed * nettoHour;
       }
@@ -157,8 +153,12 @@ export default function App() {
 
   return (
     <div className="h-[100dvh] w-full bg-[#0a0a0c] text-gray-100 flex flex-col font-sans overflow-hidden">
+      
+      {/* ИСПРАВЛЕНО: Добавлен контейнер для отступа сверху (Safe Area для iOS) */}
+      <div style={{ pt: 'max(1rem, env(safe-area-inset-top))' }} className="w-full bg-transparent shrink-0" />
 
-      <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900/40 via-[#0a0a0c] to-[#0a0a0c]">
+      {/* Изменили точку начала радиального градиента на ellipse_at_center, чтобы при смещении контента фон оставался центрированным */}
+      <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900/40 via-[#0a0a0c] to-[#0a0a0c]">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.2 }} className="h-full w-full absolute inset-0">
             {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} startShift={startShift} stopShift={stopShift} togglePause={togglePause} elapsed={elapsed} contractType={contractType} hourlyRate={hourlyRate} monthlyRate={monthlyRate} taxStatus={taxStatus} currency={currencySymbol} />}
@@ -169,7 +169,7 @@ export default function App() {
       </main>
 
       <div className="absolute bottom-0 w-full p-4 z-20 pointer-events-none">
-        <nav className="pointer-events-auto bg-gray-900/80 backdrop-blur-2xl border border-white/10 flex justify-around p-2 rounded-3xl max-w-sm mx-auto">
+        <nav className="pointer-events-auto bg-gray-900/80 backdrop-blur-2xl border border-white/10 border-b-0 flex justify-around p-2 rounded-3xl max-w-sm mx-auto" style={{ pb: 'calc(8px + env(safe-area-inset-bottom))' }}>
           {[
             { id: 'dashboard', icon: Clock, label: 'Таймер' },
             { id: 'history', icon: HistoryIcon, label: 'История' },
