@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, History as HistoryIcon, Settings as SettingsIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useIndexedDB } from './db';
+import { getShiftDetails } from './salary'; // <-- ИМПОРТИРУЕМ НАШУ ЛОГИКУ
 import Dashboard from './components/Dashboard';
 import History from './components/History';
 import Settings from './components/Settings';
@@ -10,13 +11,11 @@ import { cn } from './utils';
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Базовые настройки
   const [currencySymbol, setCurrencySymbol, currencyLoaded] = useIndexedDB('currencySymbol', 'zł');
   const [shifts, setShifts, shiftsLoaded] = useIndexedDB('shifts', []);
   const [activeShift, setActiveShift, shiftLoaded] = useIndexedDB('activeShift', null);
   const [elapsed, setElapsed] = useState(0);
 
-  // Новые настройки (Тип договора и налоги)
   const [contractType, setContractType, contractLoaded] = useIndexedDB('contractType', 'zlecenie'); 
   const [hourlyRate, setHourlyRate, rateLoaded] = useIndexedDB('hourlyRate', '28.10'); 
   const [monthlyRate, setMonthlyRate, monthlyLoaded] = useIndexedDB('monthlyRate', '4300'); 
@@ -45,7 +44,9 @@ export default function App() {
   }, [activeShift]);
 
   const startShift = (isHoliday = false) => {
+    // const testTimeOffset = (7 * 3600000) + (59 * 60000) + (50 * 1000);
     setActiveShift({ 
+      // startTime: Date.now() - testTimeOffset,
       startTime: Date.now(),
       isPaused: false,
       totalPauseTime: 0,
@@ -75,49 +76,6 @@ export default function App() {
     }
   };
 
-  const calculateEarnedNetto = (durationMs, shiftStart, isHoliday) => {
-    const hoursElapsed = durationMs / 3600000;
-    let bruttoHour = 0;
-
-    if (contractType === 'oprace') {
-      const startD = new Date(shiftStart);
-      const daysInMonth = new Date(startD.getFullYear(), startD.getMonth() + 1, 0).getDate();
-      let workDays = 0;
-      for (let i = 1; i <= daysInMonth; i++) {
-        const d = new Date(startD.getFullYear(), startD.getMonth(), i).getDay();
-        if (d !== 0 && d !== 6) workDays++;
-      }
-      bruttoHour = parseFloat(monthlyRate) / (workDays * 8) || 0;
-    } else {
-      bruttoHour = parseFloat(hourlyRate) || 0;
-    }
-
-    let multiplier = 0.73; 
-    
-    if (contractType === 'zlecenie') {
-      multiplier = 1; // Для Zlecenie берем ставку "как есть", без вычетов
-    } else if (contractType === 'oprace') {
-      if (taxStatus === 'student' || taxStatus === 'under26') multiplier = 0.78;
-      else multiplier = 0.73;
-    }
-
-    const nettoHour = bruttoHour * multiplier;
-
-    if (contractType === 'oprace') {
-      const isWeekend = new Date(shiftStart).getDay() === 0 || new Date(shiftStart).getDay() === 6;
-      if (isHoliday || isWeekend) {
-        return hoursElapsed * (nettoHour * 2); 
-      } else {
-        if (hoursElapsed > 8) {
-          return (8 * nettoHour) + ((hoursElapsed - 8) * (nettoHour * 1.5)); 
-        }
-        return hoursElapsed * nettoHour;
-      }
-    }
-
-    return hoursElapsed * nettoHour;
-  };
-
   const stopShift = () => {
     if (!activeShift) return;
     const endTime = Date.now();
@@ -126,7 +84,14 @@ export default function App() {
     if (activeShift.isPaused) finalPauseTime += (endTime - activeShift.pauseStartTime);
 
     const durationMs = Math.max(0, endTime - activeShift.startTime - finalPauseTime);
-    const earned = calculateEarnedNetto(durationMs, activeShift.startTime, activeShift.isHoliday);
+    
+    // ИСПОЛЬЗУЕМ ВЫНЕСЕННУЮ ЛОГИКУ ДЛЯ ПОДСЧЕТА ДЕНЕГ
+    const { earned } = getShiftDetails({
+      durationMs,
+      shiftStart: activeShift.startTime,
+      isHoliday: activeShift.isHoliday,
+      contractType, hourlyRate, monthlyRate, taxStatus
+    });
 
     const newShift = { 
       id: Date.now(), 
@@ -153,7 +118,6 @@ export default function App() {
   return (
     <div className="h-[100dvh] w-full bg-[#0a0a0c] text-gray-100 flex flex-col font-sans overflow-hidden">
       
-      {/* ИСПРАВЛЕНО: Распорка сверху с правильным свойством height. Берет отступ челки, но не меньше 1.5rem (24px) */}
       <div style={{ height: 'max(1.5rem, env(safe-area-inset-top))' }} className="w-full shrink-0 z-50 pointer-events-none" />
 
       <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900/40 via-[#0a0a0c] to-[#0a0a0c]">
@@ -166,7 +130,6 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* ИСПРАВЛЕНО: Добавлен paddingBottom вместо pb для отступа от полоски "Домой" на iOS */}
       <div 
         className="absolute bottom-0 w-full px-4 z-20 pointer-events-none"
         style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getShiftDetails } from '../salary'; // <-- ИМПОРТИРУЕМ НОВУЮ ЛОГИКУ
 import { cn } from '../utils';
 
 export default function History({ shifts, setShifts, hourlyRate, currency, contractType, monthlyRate, taxStatus }) {
@@ -48,49 +49,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     }
   };
 
-  // УМНЫЙ КАЛЬКУЛЯТОР ДЕНЕГ
-  const calculateEarnedNetto = (durationMs, shiftStartMs, isHoliday) => {
-    const hoursElapsed = (Number(durationMs) || 0) / 3600000;
-    let bruttoHour = 0;
-
-    if (contractType === 'oprace') {
-      const startD = new Date(shiftStartMs);
-      const daysInMonth = new Date(startD.getFullYear(), startD.getMonth() + 1, 0).getDate();
-      let workDays = 0;
-      for (let i = 1; i <= daysInMonth; i++) {
-        const d = new Date(startD.getFullYear(), startD.getMonth(), i).getDay();
-        if (d !== 0 && d !== 6) workDays++;
-      }
-      bruttoHour = parseFloat(monthlyRate) / (workDays * 8) || 0;
-    } else {
-      bruttoHour = parseFloat(hourlyRate) || 0;
-    }
-
-    let multiplier = 0.73; 
-    if (contractType === 'zlecenie') {
-      multiplier = 1; // Для Zlecenie берем ставку "как есть", без вычетов
-    } else if (contractType === 'oprace') {
-      if (taxStatus === 'student' || taxStatus === 'under26') multiplier = 0.78;
-      else multiplier = 0.73;
-    }
-
-    const nettoHour = bruttoHour * multiplier;
-
-    if (contractType === 'oprace') {
-      const isWeekend = new Date(shiftStartMs).getDay() === 0 || new Date(shiftStartMs).getDay() === 6;
-      if (isHoliday || isWeekend) {
-        return hoursElapsed * (nettoHour * 2); 
-      } else {
-        if (hoursElapsed > 8) {
-          return (8 * nettoHour) + ((hoursElapsed - 8) * (nettoHour * 1.5)); 
-        }
-        return hoursElapsed * nettoHour;
-      }
-    }
-
-    return hoursElapsed * nettoHour;
-  };
-
   const handleEditClick = (shift) => {
     setIsManualEntryOpen(false);
 
@@ -123,7 +81,13 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const pauseMs = (parseInt(editBreak) || 0) * 60000;
     const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
     
-    const earned = calculateEarnedNetto(durationMs, start.getTime(), editHoliday);
+    // ИСПОЛЬЗУЕМ НОВУЮ ЛОГИКУ ДЛЯ ПОДСЧЕТА ДЕНЕГ (РЕДАКТИРОВАНИЕ)
+    const { earned } = getShiftDetails({
+      durationMs,
+      shiftStart: start.getTime(),
+      isHoliday: editHoliday,
+      contractType, hourlyRate, monthlyRate, taxStatus
+    });
     
     let finalNote = editNote.trim();
     if (contractType === 'oprace' && editHoliday) {
@@ -148,7 +112,13 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const pauseMs = (parseInt(manualBreak) || 0) * 60000;
     const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
     
-    const earned = calculateEarnedNetto(durationMs, start.getTime(), manualHoliday);
+    // ИСПОЛЬЗУЕМ НОВУЮ ЛОГИКУ ДЛЯ ПОДСЧЕТА ДЕНЕГ (ДОБАВЛЕНИЕ ВРУЧНУЮ)
+    const { earned } = getShiftDetails({
+      durationMs,
+      shiftStart: start.getTime(),
+      isHoliday: manualHoliday,
+      contractType, hourlyRate, monthlyRate, taxStatus
+    });
     
     let finalNote = manualNote.trim();
     if (contractType === 'oprace' && manualHoliday) {
@@ -162,7 +132,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     setManualDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote(''); setManualHoliday(false);
   };
 
-  // ИСПРАВЛЕННАЯ ЛОГИКА АРХИВА И ПОДСЧЕТОВ
   const { currentMonthData, archiveMonths, globalStats } = useMemo(() => {
     const now = new Date();
     const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
@@ -183,19 +152,17 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
         };
       }
       
-      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const isHol = shift.isHoliday === true || (typeof shift.note === 'string' && shift.note.includes('Праздник'));
-      
-      let shiftOvertime = 0;
       const safeDuration = Number(shift.durationMs) || 0;
 
-      if (isHol || isWeekend) {
-        shiftOvertime = safeDuration; 
-      } else {
-        shiftOvertime = Math.max(0, safeDuration - (8 * 3600000)); 
-      }
+      // ИСПОЛЬЗУЕМ НОВУЮ ЛОГИКУ ДЛЯ ИДЕАЛЬНОГО ПОДСЧЕТА ПЕРЕРАБОТОК В СТАТИСТИКЕ
+      const { overtimeMs: shiftOvertime } = getShiftDetails({
+        durationMs: safeDuration,
+        shiftStart: shift.startTime,
+        isHoliday: isHol,
+        contractType, hourlyRate, monthlyRate, taxStatus
+      });
 
-      // ЖЕЛЕЗОБЕТОННАЯ ЗАЩИТА: Если earned пустой или NaN, он станет 0
       const safeEarned = Number(shift.earned) || 0;
 
       groups[key].shifts.push(shift);
@@ -211,7 +178,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const archives = Object.values(groups).filter(g => g.id !== currentKey).sort((a, b) => b.sortValue - a.sortValue);
     
     return { currentMonthData: current, archiveMonths: archives, globalStats: gStats };
-  }, [shifts]);
+  }, [shifts, contractType, hourlyRate, monthlyRate, taxStatus]);
 
   const today = new Date();
   const maxDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -327,7 +294,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
   const displayStats = activeTab === 'current' ? currentMonthData : globalStats;
   const showBadges = contractType === 'oprace' && activeTab === 'current' && displayStats.overtimeMs > 0;
   
-  // Безопасный вывод суммы
   const mainAmount = Number(displayStats?.earned || 0).toFixed(2);
 
   return (
@@ -337,7 +303,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
           <h2 className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">{activeTab === 'current' ? 'Заработано в этом месяце' : 'Всего за всё время'}</h2>
           <div className="text-3xl font-bold flex items-center">
             <span className="text-emerald-400 flex items-center mr-1">{currency}</span>
-            {/* Прямой вывод текста вместо анимации CountUp */}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight">
               {mainAmount}
             </span>
