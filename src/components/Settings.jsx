@@ -1,34 +1,20 @@
 import React, { useRef } from 'react';
-import { Download, Trash2, AlertTriangle, FileSpreadsheet, Upload, Briefcase, GraduationCap, User } from 'lucide-react';
+import { Download, Trash2, AlertTriangle, FileCode, Upload, Briefcase, GraduationCap, User } from 'lucide-react';
 import { cn } from '../utils';
 
 export default function Settings({ contractType, setContractType, hourlyRate, setHourlyRate, monthlyRate, setMonthlyRate, taxStatus, setTaxStatus, currency, setCurrency, shifts, setShifts }) {
   const fileInputRef = useRef(null);
 
-  const handleExportCSV = () => {
+  // ЭКСПОРТ В JSON (Надежно и в 2 строки)
+  const handleExportJSON = () => {
     if (!shifts || shifts.length === 0) {
       alert('Нет данных для экспорта. Добавьте хотя бы одну смену.');
       return;
     }
-
-    const headers = ['Дата', 'Начало', 'Конец', 'Перерыв (мин)', 'Длительность (часы)', 'Заработано', 'Заметка'];
-    const rows = shifts.map(s => {
-      const date = new Date(s.startTime).toLocaleDateString('ru-RU');
-      const start = new Date(s.startTime).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
-      const end = new Date(s.endTime).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
-      const pause = s.pauseMs ? Math.round(s.pauseMs / 60000) : 0;
-      const duration = (s.durationMs / 3600000).toFixed(2);
-      const earned = s.earned.toFixed(2);
-      const note = s.note ? `"${s.note.replace(/"/g, '""')}"` : '';
-
-      return [date, start, end, pause, duration, earned, note].join(',');
-    });
-
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(shifts, null, 2));
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `WorkTracker_Backup_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('href', dataStr);
+    link.setAttribute('download', `WorkTracker_Backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -36,85 +22,33 @@ export default function Settings({ contractType, setContractType, hourlyRate, se
 
   const handleImportClick = () => fileInputRef.current?.click();
 
+  // ИМПОРТ ИЗ JSON (С защитой от дубликатов)
   const handleImportFile = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target.result;
-      const parseCSVLine = (line) => {
-        let result = [];
-        let cur = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          let c = line[i];
-          if (c === '"') {
-            if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
-            else inQuotes = !inQuotes;
-          } else if (c === ',' && !inQuotes) {
-            result.push(cur);
-            cur = '';
-          } else {
-            cur += c;
-          }
-        }
-        result.push(cur);
-        return result;
-      };
-
-      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-      if (lines.length <= 1) {
-        alert('Файл пуст или не содержит данных.');
-        return;
-      }
-
       try {
-        const importedShifts = [];
-        for (let i = 1; i < lines.length; i++) {
-          const row = parseCSVLine(lines[i]);
-          if (row.length < 6) continue;
-
-          const [day, month, year] = row[0].split('.');
-          if (!day || !month || !year) continue;
-
-          const [sH, sM] = row[1].split(':');
-          const [eH, eM] = row[2].split(':');
-
-          const startD = new Date(year, month - 1, day, sH, sM);
-          let endD = new Date(year, month - 1, day, eH, eM);
-          if (endD < startD) endD.setDate(endD.getDate() + 1);
-
-          const pauseMs = parseInt(row[3] || 0) * 60000;
-          const earned = parseFloat(row[5] || 0);
-          const note = row[6] || '';
-          const durationMs = Math.max(0, endD.getTime() - startD.getTime() - pauseMs);
-
-          importedShifts.push({
-            id: Date.now() + i,
-            startTime: startD.getTime(),
-            endTime: endD.getTime(),
-            pauseMs,
-            durationMs,
-            earned,
-            note
-          });
-        }
-
-        if (importedShifts.length === 0) {
-          alert('Не удалось распознать смены.');
-          return;
-        }
+        const importedShifts = JSON.parse(e.target.result);
+        
+        if (!Array.isArray(importedShifts)) throw new Error('Неверный формат');
 
         if (shifts.length > 0) {
-          if (window.confirm(`Найдено ${importedShifts.length} смен.\n\nДобавить их к существующей истории?\n\n(ОК - объединить базы. Отмена - ЗАМЕНИТЬ текущие данные)`)) {
-            const merged = [...shifts, ...importedShifts].sort((a, b) => b.startTime - a.startTime);
+          if (window.confirm(`Найдено ${importedShifts.length} смен.\n\nОбъединить их с текущей историей?\n\n(ОК - объединить базы. Отмена - ЗАМЕНИТЬ текущие данные)`)) {
+            // Объединяем и убираем возможные дубликаты по ID
+            const merged = [...shifts, ...importedShifts].reduce((acc, current) => {
+              const x = acc.find(item => item.id === current.id);
+              if (!x) return acc.concat([current]);
+              return acc;
+            }, []).sort((a, b) => b.startTime - a.startTime);
+            
             setShifts(merged);
-            alert('Смены успешно добавлены!');
+            alert('Смены успешно добавлены и объединены!');
           } else {
             if (window.confirm('ВНИМАНИЕ! Это действие удалит ваши текущие смены. Точно продолжить?')) {
               setShifts(importedShifts.sort((a, b) => b.startTime - a.startTime));
-              alert('База данных успешно обновлена!');
+              alert('База данных успешно заменена!');
             }
           }
         } else {
@@ -122,7 +56,7 @@ export default function Settings({ contractType, setContractType, hourlyRate, se
           alert(`Успешно загружено ${importedShifts.length} смен!`);
         }
       } catch (err) {
-        alert('Ошибка при чтении файла.');
+        alert('Ошибка при чтении файла. Убедитесь, что это правильный .json бэкап.');
         console.error(err);
       }
       event.target.value = null;
@@ -195,16 +129,16 @@ export default function Settings({ contractType, setContractType, hourlyRate, se
           )}
         </div>
 
-        {/* Блок: Данные (Бэкап) */}
+        {/* Блок: Данные (Бэкап JSON) */}
         <div className="bg-white/[0.03] p-6 rounded-3xl border border-white/5 backdrop-blur-md">
-          <label className="block text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Управление данными</label>
+          <label className="block text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Управление данными (JSON)</label>
           <div className="space-y-3">
-            <button onClick={handleExportCSV} className="w-full flex items-center justify-between bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 p-4 rounded-2xl transition-colors group">
-              <div className="flex items-center gap-3"><div className="bg-indigo-500/20 p-2 rounded-xl"><Download size={20} /></div><div className="flex flex-col items-start"><span className="font-semibold text-white">Экспорт данных</span><span className="text-xs text-indigo-300/70">Скачать файл .csv</span></div></div><FileSpreadsheet size={20} className="opacity-50" />
+            <button onClick={handleExportJSON} className="w-full flex items-center justify-between bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 p-4 rounded-2xl transition-colors group">
+              <div className="flex items-center gap-3"><div className="bg-indigo-500/20 p-2 rounded-xl"><Download size={20} /></div><div className="flex flex-col items-start"><span className="font-semibold text-white">Экспорт данных</span><span className="text-xs text-indigo-300/70">Скачать файл .json</span></div></div><FileCode size={20} className="opacity-50" />
             </button>
-            <input type="file" accept=".csv" ref={fileInputRef} onChange={handleImportFile} className="hidden" />
+            <input type="file" accept=".json" ref={fileInputRef} onChange={handleImportFile} className="hidden" />
             <button onClick={handleImportClick} className="w-full flex items-center justify-between bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 p-4 rounded-2xl transition-colors group">
-              <div className="flex items-center gap-3"><div className="bg-emerald-500/20 p-2 rounded-xl"><Upload size={20} /></div><div className="flex flex-col items-start"><span className="font-semibold text-white">Импорт данных</span><span className="text-xs text-emerald-300/70">Загрузить из файла</span></div></div><FileSpreadsheet size={20} className="opacity-50" />
+              <div className="flex items-center gap-3"><div className="bg-emerald-500/20 p-2 rounded-xl"><Upload size={20} /></div><div className="flex flex-col items-start"><span className="font-semibold text-white">Импорт данных</span><span className="text-xs text-emerald-300/70">Загрузить из файла</span></div></div><FileCode size={20} className="opacity-50" />
             </button>
             <button onClick={handleClearData} className="w-full flex items-center justify-between bg-rose-500/5 hover:bg-rose-500/10 text-rose-400 border border-rose-500/10 p-4 rounded-2xl mt-6 group">
               <div className="flex items-center gap-3"><div className="bg-rose-500/10 p-2 rounded-xl"><AlertTriangle size={20} /></div><div className="flex flex-col items-start"><span className="font-semibold text-white">Очистить данные</span><span className="text-xs text-rose-400/70">Удалить всю историю</span></div></div><Trash2 size={20} className="opacity-50" />
