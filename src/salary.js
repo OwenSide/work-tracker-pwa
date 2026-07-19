@@ -27,18 +27,40 @@ export function calculateMonthlyNetto(brutto, taxStatus) {
     const kup = 250; 
     let podstawa = Math.round(baseAfterZus - kup);
     if (podstawa < 0) podstawa = 0;
-
     let pit = (podstawa * 0.12) - 300;
     if (pit < 0) pit = 0;
-    
     zaliczkaPit = Math.round(pit);
   }
 
   return bruttoNum - zus - zdrowotne - zaliczkaPit;
 }
 
-export function getShiftDetails({ durationMs, shiftStart, isHoliday, contractType, hourlyRate, monthlyRate, taxStatus }) {
-  const hoursElapsed = durationMs / 3600000;
+// Новая функция: Высчитывает миллисекунды, попавшие в промежуток 22:00 - 06:00
+export function getNightHoursMs(startMs, endMs) {
+  let nightMs = 0;
+  const s = new Date(startMs);
+  
+  const checkNight = (baseDate) => {
+    const nightStart = new Date(baseDate);
+    nightStart.setHours(22, 0, 0, 0);
+    const nightEnd = new Date(baseDate);
+    nightEnd.setDate(nightEnd.getDate() + 1);
+    nightEnd.setHours(6, 0, 0, 0);
+    
+    const overlapStart = Math.max(startMs, nightStart.getTime());
+    const overlapEnd = Math.min(endMs, nightEnd.getTime());
+    
+    if (overlapEnd > overlapStart) nightMs += (overlapEnd - overlapStart);
+  };
+
+  // Проверяем две ночи (если смена началась вечером сегодня, или если началась в 2 ночи прошлого дня)
+  checkNight(new Date(s.getFullYear(), s.getMonth(), s.getDate()));
+  checkNight(new Date(s.getFullYear(), s.getMonth(), s.getDate() - 1));
+
+  return nightMs;
+}
+
+export function getShiftDetails({ durationMs, shiftStart, endTime, isHoliday, shiftType = 'standard', contractType, hourlyRate, monthlyRate, taxStatus }) {
   let nettoHour = 0;
 
   if (contractType === 'zlecenie') {
@@ -49,19 +71,37 @@ export function getShiftDetails({ durationMs, shiftStart, isHoliday, contractTyp
     nettoHour = workHoursInMonth > 0 ? monthlyNetto / workHoursInMonth : 0;
   }
 
+  // ОБРАБОТКА ОТПУСКА И БОЛЬНИЧНОГО
+  if (shiftType === 'urlop') {
+    // Отпуск: 8 часов по 100% ставке
+    return { earned: 8 * nettoHour, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0, nettoHour };
+  }
+  
+  if (shiftType === 'l4') {
+    // Больничный: 8 часов по 80% ставке (стандарт Польши)
+    return { earned: (8 * nettoHour) * 0.8, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0, nettoHour };
+  }
+
+  // СТАНДАРТНАЯ РАБОТА
+  const hoursElapsed = durationMs / 3600000;
+  const actualEnd = endTime || (shiftStart + durationMs);
+  
   let earned = 0;
   let isHolidayStatus = false;
   let isWeekendStatus = false;
   let isOvertime = false;
   let overtimeMs = 0;
+  let nightMs = 0;
+  let nightBonus = 0;
 
   if (contractType === 'oprace') {
     const shiftDate = new Date(shiftStart);
-    // 0 - Воскресенье, 6 - Суббота
     const isWeekend = shiftDate.getDay() === 0 || shiftDate.getDay() === 6;
-    // const isWeekend = false;
     
-    // Приоритет надбавок: Праздник (вручную) -> Выходной (авто) -> Переработка
+    // Считаем ночные часы (доплата +20%)
+    nightMs = getNightHoursMs(shiftStart, actualEnd);
+    nightBonus = (nightMs / 3600000) * (nettoHour * 0.2);
+
     if (isHoliday) {
       isHolidayStatus = true;
       earned = hoursElapsed * (nettoHour * 2);
@@ -83,6 +123,5 @@ export function getShiftDetails({ durationMs, shiftStart, isHoliday, contractTyp
     earned = hoursElapsed * nettoHour;
   }
 
-  // Возвращаем разделенные статусы
-  return { earned, isHoliday: isHolidayStatus, isWeekend: isWeekendStatus, isOvertime, overtimeMs, nettoHour };
+  return { earned: earned + nightBonus, isHoliday: isHolidayStatus, isWeekend: isWeekendStatus, isOvertime, overtimeMs, nightMs, nettoHour };
 }

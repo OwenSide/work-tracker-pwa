@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame } from 'lucide-react';
+import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame, Sun, Moon, Briefcase, Pill } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getShiftDetails } from '../salary'; // <-- ИМПОРТИРУЕМ НОВУЮ ЛОГИКУ
+import { getShiftDetails } from '../salary';
 import { cn } from '../utils';
 
 export default function History({ shifts, setShifts, hourlyRate, currency, contractType, monthlyRate, taxStatus }) {
@@ -10,7 +10,9 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
   
   // Ручное добавление
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
+  const [shiftType, setShiftType] = useState('standard'); // 'standard' | 'urlop' | 'l4'
   const [manualDate, setManualDate] = useState('');
+  const [manualEndDate, setManualEndDate] = useState(''); // <-- НОВОЕ: Конец диапазона
   const [manualStartTime, setManualStartTime] = useState('');
   const [manualEndTime, setManualEndTime] = useState('');
   const [manualBreak, setManualBreak] = useState('');
@@ -65,6 +67,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     let cleanNote = shift.note || '';
     if (cleanNote.includes('🎁 Праздник (x2) | ')) cleanNote = cleanNote.replace('🎁 Праздник (x2) | ', '');
     else if (cleanNote.includes('🎁 Праздник (x2)')) cleanNote = cleanNote.replace('🎁 Праздник (x2)', '');
+    if (cleanNote.includes('🌴 Отпуск (100%) | ')) cleanNote = cleanNote.replace('🌴 Отпуск (100%) | ', '');
+    if (cleanNote.includes('💊 Больничный L4 (80%) | ')) cleanNote = cleanNote.replace('💊 Больничный L4 (80%) | ', '');
     
     setEditNote(cleanNote.trim());
     setEditingShiftId(shift.id);
@@ -81,18 +85,22 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const pauseMs = (parseInt(editBreak) || 0) * 60000;
     const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
     
-    // ИСПОЛЬЗУЕМ НОВУЮ ЛОГИКУ ДЛЯ ПОДСЧЕТА ДЕНЕГ (РЕДАКТИРОВАНИЕ)
+    const editingShift = shifts.find(s => s.id === editingShiftId);
+    const type = editingShift?.type || 'standard';
+
     const { earned } = getShiftDetails({
       durationMs,
       shiftStart: start.getTime(),
+      endTime: end.getTime(),
       isHoliday: editHoliday,
+      shiftType: type,
       contractType, hourlyRate, monthlyRate, taxStatus
     });
     
     let finalNote = editNote.trim();
-    if (contractType === 'oprace' && editHoliday) {
-      finalNote = finalNote ? `🎁 Праздник (x2) | ${finalNote}` : '🎁 Праздник (x2)';
-    }
+    if (type === 'urlop') finalNote = finalNote ? `🌴 Отпуск (100%) | ${finalNote}` : '🌴 Отпуск (100%)';
+    else if (type === 'l4') finalNote = finalNote ? `💊 Больничный L4 (80%) | ${finalNote}` : '💊 Больничный L4 (80%)';
+    else if (contractType === 'oprace' && editHoliday) finalNote = finalNote ? `🎁 Праздник (x2) | ${finalNote}` : '🎁 Праздник (x2)';
 
     const updatedShifts = shifts.map(shift => shift.id === editingShiftId ? { ...shift, startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note: finalNote, isHoliday: editHoliday } : shift)
       .sort((a, b) => b.startTime - a.startTime);
@@ -101,35 +109,97 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     setEditingShiftId(null);
   };
 
+  // НОВАЯ ЛОГИКА ДОБАВЛЕНИЯ (С ПОДДЕРЖКОЙ ДИАПАЗОНА ДАТ)
   const handleAddManualShift = () => {
-    if (!manualDate || !manualStartTime || !manualEndTime) return;
-    const start = new Date(`${manualDate}T${manualStartTime}`);
-    if (start > new Date()) { alert('Время начала не может быть в будущем!'); return; }
+    if (!manualDate) return;
     
-    let end = new Date(`${manualDate}T${manualEndTime}`);
-    if (end < start) end.setDate(end.getDate() + 1);
-
-    const pauseMs = (parseInt(manualBreak) || 0) * 60000;
-    const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
-    
-    // ИСПОЛЬЗУЕМ НОВУЮ ЛОГИКУ ДЛЯ ПОДСЧЕТА ДЕНЕГ (ДОБАВЛЕНИЕ ВРУЧНУЮ)
-    const { earned } = getShiftDetails({
-      durationMs,
-      shiftStart: start.getTime(),
-      isHoliday: manualHoliday,
-      contractType, hourlyRate, monthlyRate, taxStatus
-    });
-    
+    let newShifts = [];
     let finalNote = manualNote.trim();
-    if (contractType === 'oprace' && manualHoliday) {
-      finalNote = finalNote ? `🎁 Праздник (x2) | ${finalNote}` : '🎁 Праздник (x2)';
+
+    if (shiftType === 'urlop' || shiftType === 'l4') {
+      const endDateStr = manualEndDate || manualDate;
+      let currentDate = new Date(manualDate);
+      const endDate = new Date(endDateStr);
+
+      if (endDate < currentDate) {
+        alert('Дата окончания не может быть раньше даты начала!');
+        return;
+      }
+
+      const baseNote = shiftType === 'urlop' 
+        ? (finalNote ? `🌴 Отпуск (100%) | ${finalNote}` : '🌴 Отпуск (100%)') 
+        : (finalNote ? `💊 Больничный L4 (80%) | ${finalNote}` : '💊 Больничный L4 (80%)');
+
+      // Цикл: идем по всем дням от старта до конца
+      while (currentDate <= endDate) {
+        const dayOfWeek = currentDate.getDay();
+        // Создаем смены только по рабочим дням (пропускаем выходные: 0 - Вск, 6 - Суббота)
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          const start = new Date(currentDate);
+          start.setHours(8, 0, 0, 0);
+          const end = new Date(currentDate);
+          end.setHours(16, 0, 0, 0);
+          const durationMs = 8 * 3600000;
+
+          const { earned } = getShiftDetails({
+            durationMs,
+            shiftStart: start.getTime(),
+            endTime: end.getTime(),
+            isHoliday: false,
+            shiftType: shiftType,
+            contractType, hourlyRate, monthlyRate, taxStatus
+          });
+
+          newShifts.push({
+            id: Date.now() + Math.random(), // Уникальный ID для пакетного создания
+            startTime: start.getTime(),
+            endTime: end.getTime(),
+            durationMs,
+            earned,
+            pauseMs: 0,
+            note: baseNote,
+            isHoliday: false,
+            type: shiftType
+          });
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    } else {
+      // Стандартная смена (1 день)
+      if (!manualStartTime || !manualEndTime) return;
+      const start = new Date(`${manualDate}T${manualStartTime}`);
+      if (start > new Date()) { alert('Время начала не может быть в будущем!'); return; }
+      const end = new Date(`${manualDate}T${manualEndTime}`);
+      if (end < start) end.setDate(end.getDate() + 1);
+      const pauseMs = (parseInt(manualBreak) || 0) * 60000;
+      const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
+
+      const { earned } = getShiftDetails({
+        durationMs,
+        shiftStart: start.getTime(),
+        endTime: end.getTime(),
+        isHoliday: manualHoliday,
+        shiftType: shiftType,
+        contractType, hourlyRate, monthlyRate, taxStatus
+      });
+      
+      if (contractType === 'oprace' && manualHoliday && shiftType === 'standard') {
+        finalNote = finalNote ? `🎁 Праздник (x2) | ${finalNote}` : '🎁 Праздник (x2)';
+      }
+
+      newShifts.push({
+        id: Date.now(), startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note: finalNote, isHoliday: manualHoliday, type: shiftType
+      });
     }
 
-    const newShift = { id: Date.now(), startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note: finalNote, isHoliday: manualHoliday };
-    setShifts([newShift, ...shifts].sort((a, b) => b.startTime - a.startTime));
+    if (newShifts.length > 0) {
+      setShifts([...newShifts, ...shifts].sort((a, b) => b.startTime - a.startTime));
+    } else {
+      alert('В выбранном диапазоне нет рабочих дней (выбраны только выходные).');
+    }
     
     setIsManualEntryOpen(false);
-    setManualDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote(''); setManualHoliday(false);
+    setManualDate(''); setManualEndDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote(''); setManualHoliday(false); setShiftType('standard');
   };
 
   const { currentMonthData, archiveMonths, globalStats } = useMemo(() => {
@@ -154,12 +224,14 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       
       const isHol = shift.isHoliday === true || (typeof shift.note === 'string' && shift.note.includes('Праздник'));
       const safeDuration = Number(shift.durationMs) || 0;
+      const type = shift.type || 'standard';
 
-      // ИСПОЛЬЗУЕМ НОВУЮ ЛОГИКУ ДЛЯ ИДЕАЛЬНОГО ПОДСЧЕТА ПЕРЕРАБОТОК В СТАТИСТИКЕ
       const { overtimeMs: shiftOvertime } = getShiftDetails({
         durationMs: safeDuration,
         shiftStart: shift.startTime,
+        endTime: shift.endTime,
         isHoliday: isHol,
+        shiftType: type,
         contractType, hourlyRate, monthlyRate, taxStatus
       });
 
@@ -194,6 +266,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
   };
 
   const renderShiftItem = (shift, hideDelete = false) => {
+    // ... (Рендер смены остается точно таким же, без изменений)
     if (editingShiftId === shift.id) {
       return (
         <div key={shift.id} className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/30 flex flex-col gap-4 shadow-lg shadow-indigo-500/5">
@@ -228,7 +301,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
             </div>
           </div>
 
-          {contractType === 'oprace' && (
+          {contractType === 'oprace' && (!shift.type || shift.type === 'standard') && (
             <button 
               onClick={() => setEditHoliday(!editHoliday)}
               className={cn("w-full py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border", editHoliday ? "bg-amber-500/20 text-amber-400 border-amber-500/50" : "bg-black/50 text-gray-500 border-white/10 hover:bg-white/10")}
@@ -298,6 +371,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
 
   return (
     <div className="p-6 h-full flex flex-col">
+      {/* ... Верхняя часть без изменений ... */}
       <div className="flex justify-between items-end mb-6 bg-white/[0.02] p-5 rounded-3xl border border-white/5 relative overflow-hidden">
         <div className="relative z-10 w-full pr-12">
           <h2 className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">{activeTab === 'current' ? 'Заработано в этом месяце' : 'Всего за всё время'}</h2>
@@ -344,42 +418,78 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
             <div className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20 mb-4 flex flex-col gap-4">
               <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Добавить вручную</h4>
               
-              <input 
-                type="date" 
-                max={maxDateString} 
-                value={manualDate} 
-                onChange={(e) => handleSafeDateChange(e, setManualDate)}
-                className="block min-w-0 w-full max-w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" 
-                style={{colorScheme: 'dark'}} 
-              />
-              
-              <div className="flex gap-3 items-center">
-                <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
-                <ArrowRight size={16} className="text-gray-500 shrink-0" />
-                <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
-              </div>
-              
-              <div className="flex gap-2 flex-col sm:flex-row">
-                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 sm:w-1/3 min-w-0">
-                  <Coffee size={16} className="text-gray-500 shrink-0" />
-                  <input type="number" placeholder="Перерыв (мин)" value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" />
-                </div>
-                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 flex-1 min-w-0">
-                  <MessageSquare size={16} className="text-gray-500 shrink-0" />
-                  <input type="text" placeholder="Заметка (необязательно)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" />
-                </div>
-              </div>
-
               {contractType === 'oprace' && (
-                <button 
-                  onClick={() => setManualHoliday(!manualHoliday)}
-                  className={cn("w-full py-3 rounded-xl text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border", manualHoliday ? "bg-amber-500/20 text-amber-400 border-amber-500/50" : "bg-black/40 text-gray-500 border-white/5 hover:bg-white/5")}
-                >
-                  <Gift size={16} /> Праздничный тариф (x2)
-                </button>
+                <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 mb-2">
+                  <button onClick={() => setShiftType('standard')} className={cn("flex-1 py-2 rounded-lg text-xs font-bold transition-all flex justify-center items-center gap-1.5", shiftType === 'standard' ? "bg-indigo-500/20 text-indigo-300" : "text-gray-500 hover:text-gray-300")}><Briefcase size={14}/> Работа</button>
+                  <button onClick={() => setShiftType('urlop')} className={cn("flex-1 py-2 rounded-lg text-xs font-bold transition-all flex justify-center items-center gap-1.5", shiftType === 'urlop' ? "bg-emerald-500/20 text-emerald-300" : "text-gray-500 hover:text-gray-300")}><Sun size={14}/> Urlop</button>
+                  <button onClick={() => setShiftType('l4')} className={cn("flex-1 py-2 rounded-lg text-xs font-bold transition-all flex justify-center items-center gap-1.5", shiftType === 'l4' ? "bg-rose-500/20 text-rose-300" : "text-gray-500 hover:text-gray-300")}><Pill size={14}/> L4</button>
+                </div>
               )}
 
-              <button onClick={handleAddManualShift} disabled={!manualDate || !manualStartTime || !manualEndTime} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-3 rounded-xl transition-colors mt-2">Сохранить</button>
+              {/* ИНТЕРФЕЙС ДАТЫ ЗАВИСИТ ОТ ТИПА СМЕНЫ */}
+              {shiftType !== 'standard' ? (
+                <div className="flex gap-3 items-center">
+                  <div className="flex-1">
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 block pl-1">С (Дата)</label>
+                    <input 
+                      type="date" max={maxDateString} value={manualDate} onChange={(e) => handleSafeDateChange(e, setManualDate)}
+                      className="block min-w-0 w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} 
+                    />
+                  </div>
+                  <ArrowRight size={16} className="text-gray-500 shrink-0 mt-5" />
+                  <div className="flex-1">
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 block pl-1">По (Дата)</label>
+                    <input 
+                      type="date" max={maxDateString} value={manualEndDate} onChange={(e) => handleSafeDateChange(e, setManualEndDate)}
+                      className="block min-w-0 w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} 
+                    />
+                  </div>
+                </div>
+              ) : (
+                <input 
+                  type="date" max={maxDateString} value={manualDate} onChange={(e) => handleSafeDateChange(e, setManualDate)}
+                  className="block min-w-0 w-full max-w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} 
+                />
+              )}
+              
+              {shiftType === 'standard' && (
+                <>
+                  <div className="flex gap-3 items-center">
+                    <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
+                    <ArrowRight size={16} className="text-gray-500 shrink-0" />
+                    <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
+                  </div>
+                  
+                  <div className="flex gap-2 flex-col sm:flex-row">
+                    <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 sm:w-1/3 min-w-0">
+                      <Coffee size={16} className="text-gray-500 shrink-0" />
+                      <input type="number" placeholder="Перерыв (мин)" value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" />
+                    </div>
+                    <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 flex-1 min-w-0">
+                      <MessageSquare size={16} className="text-gray-500 shrink-0" />
+                      <input type="text" placeholder="Заметка" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" />
+                    </div>
+                  </div>
+
+                  {contractType === 'oprace' && (
+                    <button 
+                      onClick={() => setManualHoliday(!manualHoliday)}
+                      className={cn("w-full py-3 rounded-xl text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border", manualHoliday ? "bg-amber-500/20 text-amber-400 border-amber-500/50" : "bg-black/40 text-gray-500 border-white/5 hover:bg-white/5")}
+                    >
+                      <Gift size={16} /> Праздничный тариф (x2)
+                    </button>
+                  )}
+                </>
+              )}
+
+              {shiftType !== 'standard' && (
+                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 min-w-0 mt-1">
+                  <MessageSquare size={16} className="text-gray-500 shrink-0" />
+                  <input type="text" placeholder="Причина или заметка (необязательно)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" />
+                </div>
+              )}
+
+              <button onClick={handleAddManualShift} disabled={!manualDate || (shiftType === 'standard' && (!manualStartTime || !manualEndTime))} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-3 rounded-xl transition-colors mt-2">Сохранить</button>
             </div>
           )}
 

@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Square, Pause, Coffee, Gift, Flame, Sun } from 'lucide-react';
+import { Play, Square, Pause, Coffee, Gift, Flame, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getShiftDetails } from '../salary';
 import { cn } from '../utils';
 
 export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
-  // Разделили стейт на isHoliday и isWeekend
-  const [shiftData, setShiftData] = useState({ earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0 });
+  const [shiftData, setShiftData] = useState({ earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0 });
   const [isHolidaySelection, setIsHolidaySelection] = useState(false);
 
   useEffect(() => {
     if (!activeShift) {
-      setShiftData({ earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0 });
+      setShiftData({ earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0 });
       return;
     }
 
     const data = getShiftDetails({
       durationMs: elapsed,
       shiftStart: activeShift.startTime,
+      endTime: Date.now(), // Передаем текущее время для расчета ночных часов в реальном времени
       isHoliday: activeShift.isHoliday,
+      shiftType: 'standard',
       contractType, hourlyRate, monthlyRate, taxStatus
     });
     
@@ -35,14 +36,15 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
 
   const { h, m, s } = formatTime(elapsed);
   const ot = formatTime(shiftData.overtimeMs);
+  const nt = formatTime(shiftData.nightMs);
   
   const isRunning = activeShift && !activeShift.isPaused;
   const isPaused = activeShift && activeShift.isPaused;
+  const isNightTime = shiftData.nightMs > 0;
 
   let ringColor = "border-white/5";
   let glowColor = "bg-transparent";
   
-  // У каждого тарифа теперь свой цвет!
   if (shiftData.isHoliday) {
     ringColor = "border-amber-500/60";
     glowColor = "bg-amber-500/20";
@@ -52,6 +54,10 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
   } else if (shiftData.isOvertime) {
     ringColor = "border-emerald-500/60";
     glowColor = "bg-emerald-500/20";
+  } else if (isNightTime && isRunning) {
+    // Темно-синее свечение для ночной смены
+    ringColor = "border-blue-500/60";
+    glowColor = "bg-blue-600/20";
   } else if (isRunning) {
     ringColor = "border-indigo-500/60";
     glowColor = "bg-indigo-500/20";
@@ -88,7 +94,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         <AnimatePresence mode="wait">
           {shiftData.isHoliday && (
             <motion.div key="holiday" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-              <Gift size={16}/> Праздничный тариф(x2)
+              <Gift size={16}/> Праздничный тариф (x2)
             </motion.div>
           )}
           {!shiftData.isHoliday && shiftData.isWeekend && (
@@ -140,6 +146,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
                 </div>
               </div>
               
+              {/* Анимация для переработки */}
               <AnimatePresence>
                 {shiftData.overtimeMs > 0 && (
                   <motion.div 
@@ -151,6 +158,23 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
                     <div className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest backdrop-blur-md", shiftData.isHoliday ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : shiftData.isWeekend ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
                       {shiftData.isHoliday ? <Gift size={12} /> : shiftData.isWeekend ? <Sun size={12} /> : <Flame size={12} />}
                       <span className="tabular-nums">{ot.h}:{ot.m}:{ot.s}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Анимация для ночных часов */}
+              <AnimatePresence>
+                {isNightTime && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    className="flex flex-col items-center overflow-hidden"
+                  >
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest backdrop-blur-md bg-blue-500/10 border-blue-500/20 text-blue-400">
+                      <Moon size={12} />
+                      <span className="tabular-nums">Ночные: {nt.h}:{nt.m}:{nt.s}</span>
                     </div>
                   </motion.div>
                 )}
