@@ -95,8 +95,7 @@ export default function App() {
     let multiplier = 0.73; 
     
     if (contractType === 'zlecenie') {
-      if (taxStatus === 'student') multiplier = 1; 
-      else if (taxStatus === 'under26') multiplier = 0.78; 
+      multiplier = 1; // Для Zlecenie берем ставку "как есть", без вычетов
     } else if (contractType === 'oprace') {
       if (taxStatus === 'student' || taxStatus === 'under26') multiplier = 0.78;
       else multiplier = 0.73;

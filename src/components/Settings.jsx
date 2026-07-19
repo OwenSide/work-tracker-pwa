@@ -162,7 +162,7 @@ export default function Settings({ contractType, setContractType, hourlyRate, se
           <div className="flex gap-3 relative z-10 mb-6">
             <div className="flex-1">
               <label className="block text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">
-                {contractType === 'oprace' ? 'Brutto в месяц' : 'Brutto в час'}
+                {contractType === 'oprace' ? 'Brutto в месяц' : 'Netto в час'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none"><span className="text-xl text-emerald-400 font-bold">{currency}</span></div>
@@ -180,14 +180,18 @@ export default function Settings({ contractType, setContractType, hourlyRate, se
             </div>
           </div>
 
-          <label className="block text-gray-400 text-xs font-bold uppercase tracking-widest mb-3 relative z-10">Налоговый статус</label>
-          <div className="grid grid-cols-3 gap-2 relative z-10">
-            <button onClick={() => setTaxStatus('standard')} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all", taxStatus === 'standard' ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300" : "bg-black/30 border-white/5 text-gray-500")}><User size={20}/> <span className="text-[10px] uppercase font-bold text-center">Standard<br/>(&gt;26 лет)</span></button>
-            <button onClick={() => setTaxStatus('under26')} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all", taxStatus === 'under26' ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300" : "bg-black/30 border-white/5 text-gray-500")}><Briefcase size={20}/> <span className="text-[10px] uppercase font-bold text-center">PIT-0<br/>(&lt;26 лет)</span></button>
-            <button onClick={() => setTaxStatus('student')} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all", taxStatus === 'student' ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300" : "bg-black/30 border-white/5 text-gray-500")}><GraduationCap size={20}/> <span className="text-[10px] uppercase font-bold text-center">Студент<br/>(до 26 лет)</span></button>
-          </div>
-          {contractType === 'oprace' && taxStatus === 'student' && (
-            <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mt-3 text-center">На Umowie o Pracę статус студента не дает освобождения от ZUS</p>
+          {contractType === 'oprace' && (
+            <>
+              <label className="block text-gray-400 text-xs font-bold uppercase tracking-widest mb-3 relative z-10">Налоговый статус</label>
+              <div className="grid grid-cols-3 gap-2 relative z-10">
+                <button onClick={() => setTaxStatus('standard')} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all", taxStatus === 'standard' ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300" : "bg-black/30 border-white/5 text-gray-500")}><User size={20}/> <span className="text-[10px] uppercase font-bold text-center">Standard<br/>(&gt;26 лет)</span></button>
+                <button onClick={() => setTaxStatus('under26')} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all", taxStatus === 'under26' ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300" : "bg-black/30 border-white/5 text-gray-500")}><Briefcase size={20}/> <span className="text-[10px] uppercase font-bold text-center">PIT-0<br/>(&lt;26 лет)</span></button>
+                <button onClick={() => setTaxStatus('student')} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all", taxStatus === 'student' ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300" : "bg-black/30 border-white/5 text-gray-500")}><GraduationCap size={20}/> <span className="text-[10px] uppercase font-bold text-center">Студент<br/>(до 26 лет)</span></button>
+              </div>
+              {taxStatus === 'student' && (
+                <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mt-3 text-center relative z-10">На Umowie o Pracę статус студента не дает освобождения от ZUS</p>
+              )}
+            </>
           )}
         </div>
 
