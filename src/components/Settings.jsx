@@ -11,13 +11,26 @@ export default function Settings({ contractType, setContractType, hourlyRate, se
       alert('Нет данных для экспорта. Добавьте хотя бы одну смену.');
       return;
     }
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(shifts, null, 2));
+
+    // 1. Превращаем данные в строку
+    const jsonString = JSON.stringify(shifts, null, 2);
+    
+    // 2. Создаем Blob (полноценный файл в памяти браузера)
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // 3. Создаем временную ссылку на этот файл
+    const url = window.URL.createObjectURL(blob);
+    
+    // 4. Эмулируем клик
     const link = document.createElement('a');
-    link.setAttribute('href', dataStr);
-    link.setAttribute('download', `WorkTracker_Backup_${new Date().toISOString().split('T')[0]}.json`);
+    link.href = url;
+    link.download = `WorkTracker_Backup_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
+    
+    // 5. Убираем за собой мусор
     document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   const handleImportClick = () => fileInputRef.current?.click();

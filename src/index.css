@@ -16,3 +16,20 @@ html, body {
   /* Запрещаем резиновый скролл (bounce) на айфонах, чтобы не мелькал фон */
   overscroll-behavior: none; 
 }
+
+@layer base {
+  html, body, #root {
+    /* 1. Убиваем эффект "резинки" при скролле за пределы экрана (iOS bounce) */
+    overscroll-behavior-y: none;
+    
+    /* 2. Отключаем зум двойным тапом (ускоряет клики) */
+    touch-action: manipulation;
+    
+    /* 3. Запрещаем выделение текста долгим нажатием */
+    -webkit-user-select: none;
+    user-select: none;
+    
+    /* 4. Запрещаем всплывающее системное меню при долгом нажатии */
+    -webkit-touch-callout: none;
+  }
+}
