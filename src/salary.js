@@ -73,12 +73,10 @@ export function getShiftDetails({ durationMs, shiftStart, endTime, isHoliday, sh
 
   // ОБРАБОТКА ОТПУСКА И БОЛЬНИЧНОГО
   if (shiftType === 'urlop') {
-    // Отпуск: 8 часов по 100% ставке
     return { earned: 8 * nettoHour, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0, nettoHour };
   }
   
   if (shiftType === 'l4') {
-    // Больничный: 8 часов по 80% ставке (стандарт Польши)
     return { earned: (8 * nettoHour) * 0.8, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0, nettoHour };
   }
 
@@ -97,20 +95,26 @@ export function getShiftDetails({ durationMs, shiftStart, endTime, isHoliday, sh
   if (contractType === 'oprace') {
     const shiftDate = new Date(shiftStart);
     const isWeekend = shiftDate.getDay() === 0 || shiftDate.getDay() === 6;
-    
-    // Считаем ночные часы (доплата +20%)
-    nightMs = getNightHoursMs(shiftStart, actualEnd);
-    nightBonus = (nightMs / 3600000) * (nettoHour * 0.2);
 
     if (isHoliday) {
       isHolidayStatus = true;
       earned = hoursElapsed * (nettoHour * 2);
       overtimeMs = durationMs; 
+      // Выходной х2 перекрывает ночные
+      nightMs = 0;
+      nightBonus = 0;
     } else if (isWeekend) {
       isWeekendStatus = true;
       earned = hoursElapsed * (nettoHour * 2);
       overtimeMs = durationMs; 
+      // Выходной х2 перекрывает ночные
+      nightMs = 0;
+      nightBonus = 0;
     } else {
+      // Считаем ночные часы (доплата +20%) ТОЛЬКО в обычные рабочие дни
+      nightMs = getNightHoursMs(shiftStart, actualEnd);
+      nightBonus = (nightMs / 3600000) * (nettoHour * 0.2);
+
       if (hoursElapsed > 8) {
         isOvertime = true;
         earned = (8 * nettoHour) + ((hoursElapsed - 8) * (nettoHour * 1.5)); 
