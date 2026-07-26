@@ -11,13 +11,11 @@ export default function BottomNav({ activeTab, setActiveTab }) {
   ];
 
   return (
-    <div 
-      className="fixed bottom-0 left-0 w-full z-50 flex justify-center pointer-events-none"
-      // Исправляем iOS: берем либо 16px (для обычных экранов), либо зону "полоски" снизу на iPhone
-      style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
-    >
+    // Поднимаем обертку на fixed bottom-5, чтобы она парила над системной полоской айфона без черных блоков
+    <div className="fixed bottom-5 left-0 w-full z-50 flex justify-center pointer-events-none">
+      
       {/* Плавающая премиальная капсула */}
-      <nav className="pointer-events-auto bg-[#121214]/80 backdrop-blur-2xl border border-white/10 p-1.5 rounded-full flex items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)] mb-2">
+      <nav className="pointer-events-auto bg-[#121214]/85 backdrop-blur-2xl border border-white/10 p-1.5 rounded-full flex items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)]">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           

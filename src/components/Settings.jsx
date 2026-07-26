@@ -2,40 +2,49 @@ import React, { useRef } from 'react';
 import { Download, Trash2, AlertTriangle, FileCode, Upload, Briefcase, GraduationCap, User } from 'lucide-react';
 import { cn } from '../utils';
 
-export default function Settings({ contractType, setContractType, hourlyRate, setHourlyRate, monthlyRate, setMonthlyRate, taxStatus, setTaxStatus, shifts, setShifts }) {
+export default function Settings({ 
+  contractType, setContractType, 
+  hourlyRate, setHourlyRate, 
+  monthlyRate, setMonthlyRate, 
+  taxStatus, setTaxStatus, 
+  shifts, setShifts 
+}) {
   const fileInputRef = useRef(null);
 
-  // ЭКСПОРТ В JSON
+  // ЭКСПОРТ В JSON (Смены + Настройки)
   const handleExportJSON = () => {
     if (!shifts || shifts.length === 0) {
       alert('Нет данных для экспорта. Добавьте хотя бы одну смену.');
       return;
     }
 
-    // 1. Превращаем данные в строку
-    const jsonString = JSON.stringify(shifts, null, 2);
-    
-    // 2. Создаем Blob (полноценный файл в памяти браузера)
+    // Собираем всё в единый объект бэкапа
+    const backupData = {
+      version: 1,
+      contractType,
+      hourlyRate,
+      monthlyRate,
+      taxStatus,
+      shifts
+    };
+
+    const jsonString = JSON.stringify(backupData, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
-    
-    // 3. Создаем временную ссылку на этот файл
     const url = window.URL.createObjectURL(blob);
     
-    // 4. Эмулируем клик
     const link = document.createElement('a');
     link.href = url;
-    link.download = `WorkTracker_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `WorkTracker_Full_Backup_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     
-    // 5. Убираем за собой мусор
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   };
 
   const handleImportClick = () => fileInputRef.current?.click();
 
-  // ИМПОРТ ИЗ JSON
+  // ИМПОРТ ИЗ JSON (Смены + Настройки)
   const handleImportFile = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -43,12 +52,31 @@ export default function Settings({ contractType, setContractType, hourlyRate, se
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importedShifts = JSON.parse(e.target.result);
+        const parsed = JSON.parse(e.target.result);
         
-        if (!Array.isArray(importedShifts)) throw new Error('Неверный формат');
+        // Поддерживаем как новый формат (объект с настройками), так и старый (просто массив смен)
+        let importedShifts = [];
+        let importedConfig = null;
+
+        if (Array.isArray(parsed)) {
+          importedShifts = parsed;
+        } else if (parsed && Array.isArray(parsed.shifts)) {
+          importedShifts = parsed.shifts;
+          importedConfig = parsed;
+        } else {
+          throw new Error('Неверный формат');
+        }
+
+        // Восстанавливаем настройки, если они были в файле
+        if (importedConfig) {
+          if (importedConfig.contractType) setContractType(importedConfig.contractType);
+          if (importedConfig.hourlyRate) setHourlyRate(importedConfig.hourlyRate);
+          if (importedConfig.monthlyRate) setMonthlyRate(importedConfig.monthlyRate);
+          if (importedConfig.taxStatus) setTaxStatus(importedConfig.taxStatus);
+        }
 
         if (shifts.length > 0) {
-          if (window.confirm(`Найдено ${importedShifts.length} смен.\n\nОбъединить их с текущей историей?\n\n(ОК - объединить базы. Отмена - ЗАМЕНИТЬ текущие данные)`)) {
+          if (window.confirm(`Найдено ${importedShifts.length} смен и настройки.\n\nОбъединить смены с текущей историей?\n\n(ОК - объединить базы. Отмена - ЗАМЕНИТЬ текущие данные)`)) {
             const merged = [...shifts, ...importedShifts].reduce((acc, current) => {
               const x = acc.find(item => item.id === current.id);
               if (!x) return acc.concat([current]);
@@ -56,16 +84,16 @@ export default function Settings({ contractType, setContractType, hourlyRate, se
             }, []).sort((a, b) => b.startTime - a.startTime);
             
             setShifts(merged);
-            alert('Смены успешно добавлены и объединены!');
+            alert('Настройки и смены успешно загружены и объединены!');
           } else {
             if (window.confirm('ВНИМАНИЕ! Это действие удалит ваши текущие смены. Точно продолжить?')) {
               setShifts(importedShifts.sort((a, b) => b.startTime - a.startTime));
-              alert('База данных успешно заменена!');
+              alert('База данных и настройки успешно обновлены!');
             }
           }
         } else {
           setShifts(importedShifts.sort((a, b) => b.startTime - a.startTime));
-          alert(`Успешно загружено ${importedShifts.length} смен!`);
+          alert(`Успешно загружено настроек и ${importedShifts.length} смен!`);
         }
       } catch (err) {
         alert('Ошибка при чтении файла. Убедитесь, что это правильный .json бэкап.');
@@ -87,7 +115,7 @@ export default function Settings({ contractType, setContractType, hourlyRate, se
   };
 
   return (
-    <div className="p-6 h-full animate-fade-in overflow-y-auto pb-32 no-scrollbar">
+    <div className="p-6 h-full animate-fade-in overflow-y-auto no-scrollbar" style={{ paddingBottom: '160px' }}>
       <h2 className="text-3xl font-bold mb-8 text-white tracking-tight">Настройки</h2>
       
       <div className="space-y-6">
