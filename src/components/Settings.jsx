@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Download, Trash2, AlertTriangle, FileCode, Upload, Briefcase, GraduationCap, User } from 'lucide-react';
+import { Download, Trash2, AlertTriangle, FileCode, Upload, Briefcase, GraduationCap, User, Settings as SettingsIcon } from 'lucide-react';
 import { cn } from '../utils';
 
 export default function Settings({ 
@@ -115,68 +115,140 @@ export default function Settings({
   };
 
   return (
-    <div className="p-6 h-full animate-fade-in overflow-y-auto no-scrollbar" style={{ paddingBottom: '160px' }}>
-      <h2 className="text-3xl font-bold mb-8 text-white tracking-tight">Настройки</h2>
+    <div className="p-4 sm:p-6 h-full flex flex-col bg-black overflow-y-auto no-scrollbar pb-32">
       
-      <div className="space-y-6">
+      {/* Премиальный заголовок */}
+      <div className="flex items-center gap-3 mb-8 mt-2 px-2">
+        <div className="bg-zinc-900 border border-white/5 p-2.5 rounded-2xl">
+          <SettingsIcon size={24} className="text-zinc-300" strokeWidth={1.5} />
+        </div>
+        <h2 className="text-2xl font-light text-white tracking-wide">Настройки</h2>
+      </div>
+      
+      <div className="space-y-6 max-w-2xl">
         
-        {/* Тип договора */}
-        <div className="bg-white/[0.03] p-6 rounded-3xl border border-white/5 backdrop-blur-md">
-          <label className="block text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Тип договора</label>
-          <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5">
-            <button onClick={() => setContractType('zlecenie')} className={cn("flex-1 py-3 rounded-xl text-sm font-semibold transition-all", contractType === 'zlecenie' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300")}>Umowa Zlecenie</button>
-            <button onClick={() => setContractType('oprace')} className={cn("flex-1 py-3 rounded-xl text-sm font-semibold transition-all", contractType === 'oprace' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300")}>Umowa o Pracę</button>
+        {/* Блок: Тип договора */}
+        <div className="bg-zinc-900/60 p-5 rounded-[1.5rem] border border-white/[0.04] backdrop-blur-md">
+          <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mb-3 ml-1">Тип договора</label>
+          <div className="flex bg-zinc-950 p-1.5 rounded-2xl border border-white/5">
+            <button 
+              onClick={() => setContractType('zlecenie')} 
+              className={cn("flex-1 py-3 rounded-xl text-sm font-medium transition-all duration-300", contractType === 'zlecenie' ? "bg-white text-black shadow-md" : "text-zinc-500 hover:text-zinc-300")}
+            >
+              Umowa Zlecenie
+            </button>
+            <button 
+              onClick={() => setContractType('oprace')} 
+              className={cn("flex-1 py-3 rounded-xl text-sm font-medium transition-all duration-300", contractType === 'oprace' ? "bg-white text-black shadow-md" : "text-zinc-500 hover:text-zinc-300")}
+            >
+              Umowa o Pracę
+            </button>
           </div>
         </div>
 
-        {/* Финансы */}
-        <div className="bg-white/[0.03] p-6 rounded-3xl border border-white/5 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
+        {/* Блок: Финансы и Статус */}
+        <div className="bg-zinc-900/60 p-5 rounded-[1.5rem] border border-white/[0.04] backdrop-blur-md relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-48 h-48 bg-emerald-500/5 rounded-full blur-[60px] pointer-events-none"></div>
           
           <div className="relative z-10">
-            <label className="block text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">
+            <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mb-3 ml-1">
               {contractType === 'oprace' ? 'Brutto в месяц' : 'Netto в час'}
             </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
-                <span className="text-xl text-emerald-400 font-bold">zł</span>
-              </div>
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center px-4 py-1.5 focus-within:border-white/30 focus-within:ring-1 focus-within:ring-white/30 transition-all">
+              <span className="text-2xl text-emerald-500/80 font-light mr-3 select-none">zł</span>
               <input
                 type="number" step="any"
                 value={contractType === 'oprace' ? monthlyRate : hourlyRate}
                 onChange={(e) => contractType === 'oprace' ? setMonthlyRate(e.target.value) : setHourlyRate(e.target.value)}
-                className="w-full bg-black/30 text-white border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:border-indigo-500 text-xl font-semibold transition-all shadow-inner"
+                className="w-full bg-transparent text-white text-2xl font-light py-3 focus:outline-none placeholder:text-zinc-700"
+                placeholder="0.00"
               />
             </div>
           </div>
 
           {contractType === 'oprace' && (
-            <>
-              <label className="block text-gray-400 text-xs font-bold uppercase tracking-widest mb-3 relative z-10 mt-6 pt-6 border-t border-white/5">Налоговый статус</label>
-              <div className="grid grid-cols-3 gap-2 relative z-10">
-                <button onClick={() => setTaxStatus('standard')} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all", taxStatus === 'standard' ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300 shadow-sm" : "bg-black/30 border-white/5 text-gray-500 hover:bg-white/5")}><User size={20}/> <span className="text-[10px] uppercase font-bold text-center">Standard<br/>(&gt;26 лет)</span></button>
-                <button onClick={() => setTaxStatus('under26')} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all", taxStatus === 'under26' ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300 shadow-sm" : "bg-black/30 border-white/5 text-gray-500 hover:bg-white/5")}><Briefcase size={20}/> <span className="text-[10px] uppercase font-bold text-center">PIT-0<br/>(&lt;26 лет)</span></button>
-                <button onClick={() => setTaxStatus('student')} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all", taxStatus === 'student' ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300 shadow-sm" : "bg-black/30 border-white/5 text-gray-500 hover:bg-white/5")}><GraduationCap size={20}/> <span className="text-[10px] uppercase font-bold text-center">Студент<br/>(до 26 лет)</span></button>
+            <div className="relative z-10 mt-6 pt-6 border-t border-white/[0.04]">
+              <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mb-3 ml-1">Налоговый статус</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button 
+                  onClick={() => setTaxStatus('standard')} 
+                  className={cn("flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl border transition-all", taxStatus === 'standard' ? "bg-white text-black border-transparent shadow-md" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700")}
+                >
+                  <User size={20} strokeWidth={taxStatus === 'standard' ? 2 : 1.5} /> 
+                  <span className="text-[10px] uppercase font-bold text-center tracking-wide leading-tight">Standard<br/><span className="opacity-70 font-medium tracking-normal">(&gt;26 лет)</span></span>
+                </button>
+                <button 
+                  onClick={() => setTaxStatus('under26')} 
+                  className={cn("flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl border transition-all", taxStatus === 'under26' ? "bg-white text-black border-transparent shadow-md" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700")}
+                >
+                  <Briefcase size={20} strokeWidth={taxStatus === 'under26' ? 2 : 1.5} /> 
+                  <span className="text-[10px] uppercase font-bold text-center tracking-wide leading-tight">PIT-0<br/><span className="opacity-70 font-medium tracking-normal">(&lt;26 лет)</span></span>
+                </button>
+                <button 
+                  onClick={() => setTaxStatus('student')} 
+                  className={cn("flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl border transition-all", taxStatus === 'student' ? "bg-white text-black border-transparent shadow-md" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700")}
+                >
+                  <GraduationCap size={20} strokeWidth={taxStatus === 'student' ? 2 : 1.5} /> 
+                  <span className="text-[10px] uppercase font-bold text-center tracking-wide leading-tight">Студент<br/><span className="opacity-70 font-medium tracking-normal">(до 26 лет)</span></span>
+                </button>
               </div>
-              <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mt-3 text-center relative z-10">На Umowie o Pracę статус студента не дает освобождения от ZUS</p>
-            </>
+              <div className="mt-4 flex items-start gap-2 bg-zinc-950/50 p-3 rounded-xl border border-white/5">
+                <AlertTriangle size={14} className="text-zinc-500 shrink-0 mt-0.5" />
+                <p className="text-zinc-400 text-xs font-light leading-snug">
+                  На <span className="font-medium text-zinc-300">Umowie o Pracę</span> статус студента не дает освобождения от ZUS.
+                </p>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Блок: Данные (Бэкап JSON) */}
-        <div className="bg-white/[0.03] p-6 rounded-3xl border border-white/5 backdrop-blur-md">
-          <label className="block text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Управление данными (JSON)</label>
-          <div className="space-y-3">
-            <button onClick={handleExportJSON} className="w-full flex items-center justify-between bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 p-4 rounded-2xl transition-colors group">
-              <div className="flex items-center gap-3"><div className="bg-indigo-500/20 p-2 rounded-xl group-hover:scale-110 transition-transform"><Download size={20} /></div><div className="flex flex-col items-start"><span className="font-semibold text-white">Экспорт данных</span><span className="text-xs text-indigo-300/70">Скачать файл .json</span></div></div><FileCode size={20} className="opacity-50" />
+        {/* Блок: Управление данными (iOS Style List) */}
+        <div className="mb-6">
+          <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mb-2 ml-3">Резервное копирование</label>
+          <div className="bg-zinc-900/60 rounded-[1.5rem] border border-white/[0.04] backdrop-blur-md overflow-hidden flex flex-col">
+            
+            {/* Экспорт */}
+            <button onClick={handleExportJSON} className="flex items-center justify-between p-4 bg-transparent hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] group text-left">
+              <div className="flex items-center gap-4">
+                <div className="bg-zinc-800 p-2.5 rounded-xl group-hover:bg-zinc-700 transition-colors">
+                  <Download size={18} className="text-zinc-300" strokeWidth={2} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm text-zinc-200">Экспорт данных</span>
+                  <span className="text-xs text-zinc-500 font-light">Сохранить историю в .json</span>
+                </div>
+              </div>
+              <FileCode size={18} className="text-zinc-600" />
             </button>
+            
+            {/* Импорт */}
             <input type="file" accept=".json" ref={fileInputRef} onChange={handleImportFile} className="hidden" />
-            <button onClick={handleImportClick} className="w-full flex items-center justify-between bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 p-4 rounded-2xl transition-colors group">
-              <div className="flex items-center gap-3"><div className="bg-emerald-500/20 p-2 rounded-xl group-hover:scale-110 transition-transform"><Upload size={20} /></div><div className="flex flex-col items-start"><span className="font-semibold text-white">Импорт данных</span><span className="text-xs text-emerald-300/70">Загрузить из файла</span></div></div><FileCode size={20} className="opacity-50" />
+            <button onClick={handleImportClick} className="flex items-center justify-between p-4 bg-transparent hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] group text-left">
+              <div className="flex items-center gap-4">
+                <div className="bg-zinc-800 p-2.5 rounded-xl group-hover:bg-zinc-700 transition-colors">
+                  <Upload size={18} className="text-zinc-300" strokeWidth={2} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm text-zinc-200">Импорт данных</span>
+                  <span className="text-xs text-zinc-500 font-light">Загрузить из бэкапа</span>
+                </div>
+              </div>
+              <FileCode size={18} className="text-zinc-600" />
             </button>
-            <button onClick={handleClearData} className="w-full flex items-center justify-between bg-rose-500/5 hover:bg-rose-500/10 text-rose-400 border border-rose-500/10 p-4 rounded-2xl mt-6 group">
-              <div className="flex items-center gap-3"><div className="bg-rose-500/10 p-2 rounded-xl group-hover:scale-110 transition-transform"><AlertTriangle size={20} /></div><div className="flex flex-col items-start"><span className="font-semibold text-white">Очистить данные</span><span className="text-xs text-rose-400/70">Удалить всю историю</span></div></div><Trash2 size={20} className="opacity-50" />
+
+            {/* Очистка данных */}
+            <button onClick={handleClearData} className="flex items-center justify-between p-4 bg-transparent hover:bg-rose-500/5 transition-colors group text-left">
+              <div className="flex items-center gap-4">
+                <div className="bg-rose-500/10 p-2.5 rounded-xl group-hover:bg-rose-500/20 transition-colors">
+                  <Trash2 size={18} className="text-rose-500" strokeWidth={2} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm text-rose-500">Очистить данные</span>
+                  <span className="text-xs text-zinc-500 font-light">Безвозвратное удаление</span>
+                </div>
+              </div>
             </button>
+
           </div>
         </div>
 

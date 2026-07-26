@@ -17,7 +17,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
     const data = getShiftDetails({
       durationMs: elapsed,
       shiftStart: activeShift.startTime,
-      endTime: Date.now(), // Передаем текущее время для расчета ночных часов в реальном времени
+      endTime: Date.now(),
       isHoliday: activeShift.isHoliday,
       shiftType: 'standard',
       contractType, hourlyRate, monthlyRate, taxStatus
@@ -42,29 +42,29 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
   const isPaused = activeShift && activeShift.isPaused;
   const isNightTime = shiftData.nightMs > 0;
 
-  let ringColor = "border-white/5";
-  let glowColor = "bg-transparent";
+  // Динамические цвета для центрального стекла
+  let glassBg = "bg-gradient-to-br from-white/5 to-white/[0.01]";
+  let glassBorder = "border-white/10";
   
   if (shiftData.isHoliday) {
-    ringColor = "border-amber-500/60";
-    glowColor = "bg-amber-500/20";
+    glassBg = "bg-gradient-to-br from-amber-500/30 to-amber-900/10";
+    glassBorder = "border-amber-400/30";
   } else if (shiftData.isWeekend) {
-    ringColor = "border-cyan-500/60";
-    glowColor = "bg-cyan-500/20";
+    glassBg = "bg-gradient-to-br from-cyan-500/30 to-cyan-900/10";
+    glassBorder = "border-cyan-400/30";
   } else if (shiftData.isOvertime) {
-    ringColor = "border-emerald-500/60";
-    glowColor = "bg-emerald-500/20";
+    glassBg = "bg-gradient-to-br from-emerald-500/30 to-emerald-900/10";
+    glassBorder = "border-emerald-400/30";
   } else if (isNightTime && isRunning) {
-    // Темно-синее свечение для ночной смены
-    ringColor = "border-blue-500/60";
-    glowColor = "bg-blue-600/20";
+    glassBg = "bg-gradient-to-br from-blue-500/30 to-blue-900/10";
+    glassBorder = "border-blue-400/30";
   } else if (isRunning) {
-    ringColor = "border-indigo-500/60";
-    glowColor = "bg-indigo-500/20";
+    glassBg = "bg-gradient-to-br from-indigo-500/30 to-indigo-900/10";
+    glassBorder = "border-indigo-400/30";
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-6 pb-24 relative overflow-hidden">
+    <div className="h-full flex flex-col items-center justify-center p-6 pb-24 relative overflow-hidden bg-[#030303]">
       
       <AnimatePresence>
         {contractType === 'oprace' && !activeShift && (
@@ -77,14 +77,14 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
             <button 
               onClick={() => setIsHolidaySelection(!isHolidaySelection)} 
               className={cn(
-                "group p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 border shadow-lg backdrop-blur-md relative overflow-hidden w-16 h-16", 
+                "group p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 backdrop-blur-xl relative overflow-hidden w-16 h-16 border shadow-[inset_0_1px_10px_rgba(255,255,255,0.1),0_10px_30px_rgba(0,0,0,0.5)]", 
                 isHolidaySelection 
-                  ? "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]" 
-                  : "bg-white/5 text-gray-500 border-white/5 hover:bg-white/10 hover:text-gray-300"
+                  ? "bg-gradient-to-br from-amber-500/30 to-amber-700/10 border-amber-400/40 text-amber-300" 
+                  : "bg-gradient-to-br from-white/10 to-transparent border-white/10 text-gray-400 hover:text-gray-200"
               )}
             >
               <Gift size={22} className={cn("transition-transform duration-300", isHolidaySelection && "scale-110 animate-pulse")} />
-              <span className="text-[10px] font-black uppercase tracking-widest leading-none">x2</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest leading-none">x2</span>
             </button>
           </motion.div>
         )}
@@ -93,17 +93,17 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
       <div className="absolute top-10 w-full flex justify-center z-20 h-10">
         <AnimatePresence mode="wait">
           {shiftData.isHoliday && (
-            <motion.div key="holiday" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+            <motion.div key="holiday" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full backdrop-blur-md bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[inset_0_1px_8px_rgba(245,158,11,0.3),0_10px_20px_rgba(0,0,0,0.5)]">
               <Gift size={16}/> Праздничный тариф (x2)
             </motion.div>
           )}
           {!shiftData.isHoliday && shiftData.isWeekend && (
-            <motion.div key="weekend" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+            <motion.div key="weekend" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full backdrop-blur-md bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[inset_0_1px_8px_rgba(6,182,212,0.3),0_10px_20px_rgba(0,0,0,0.5)]">
               <Sun size={16}/> Выходной (x2)
             </motion.div>
           )}
           {!shiftData.isHoliday && !shiftData.isWeekend && shiftData.isOvertime && (
-            <motion.div key="overtime" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+            <motion.div key="overtime" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full backdrop-blur-md bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[inset_0_1px_8px_rgba(16,185,129,0.3),0_10px_20px_rgba(0,0,0,0.5)]">
               <Flame size={16} className="animate-pulse"/> Overtime x1.5
             </motion.div>
           )}
@@ -116,37 +116,39 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative mb-14 mt-4 flex justify-center items-center"
       >
-        <div className={cn("absolute inset-0 rounded-full blur-[60px] transition-all duration-1000", glowColor, isRunning ? "scale-110" : "scale-100 opacity-0")} />
-        
-        <div className={cn("relative z-10 w-80 h-80 rounded-full border-[6px] flex flex-col items-center justify-center bg-black/50 backdrop-blur-xl transition-all duration-700 shadow-2xl", ringColor)}>
+        <div className={cn(
+          "relative z-10 w-80 h-80 rounded-full border-[1.5px] flex flex-col items-center justify-center transition-all duration-700 overflow-hidden",
+          "backdrop-blur-2xl shadow-[inset_0_0_50px_rgba(255,255,255,0.05),0_20px_60px_rgba(0,0,0,0.8)]",
+          glassBg, glassBorder
+        )}>
+          <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-60 rounded-t-full" />
+          
           {isPaused ? (
-            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-amber-400">
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-amber-400/90 relative z-20">
               <Coffee size={48} className="mb-4 opacity-80" />
-              <span className="text-2xl font-black tracking-widest uppercase">Пауза</span>
+              <span className="text-2xl font-bold tracking-widest uppercase text-shadow-sm">Пауза</span>
             </motion.div>
           ) : (
-            <div className="flex flex-col items-center justify-center w-full mt-2">
-              
-              <div className="flex flex-col items-center relative z-20 mb-4">
+            <div className="flex flex-col items-center justify-center w-full mt-2 relative z-20">
+              <div className="flex flex-col items-center mb-4">
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5 opacity-80">Заработано (Netto)</span>
-                <div className={cn("text-6xl font-black flex items-center tracking-tighter transition-colors duration-500", shiftData.isHoliday ? "text-amber-400" : shiftData.isWeekend ? "text-cyan-400" : "text-emerald-400")}>
-                  <span className="mr-2 opacity-50 text-3xl font-bold">{currency}</span>
+                <div className={cn("text-6xl font-black flex items-center tracking-tighter transition-colors duration-500", shiftData.isHoliday ? "text-amber-300" : shiftData.isWeekend ? "text-cyan-300" : "text-emerald-300")}>
+                  <span className="mr-2 opacity-60 text-3xl font-bold">{currency}</span>
                   {shiftData.earned.toFixed(2)}
                 </div>
               </div>
 
               <div className="flex flex-col items-center">
-                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 opacity-80">Время смены</span>
-                <div className="flex items-baseline space-x-1 tabular-nums tracking-tight opacity-90 mb-1">
-                  <span className="text-4xl font-bold text-white">{h}</span>
-                  <span className="text-2xl text-gray-500 pb-0.5 opacity-50">:</span>
-                  <span className="text-4xl font-bold text-white">{m}</span>
-                  <span className="text-2xl text-gray-500 pb-0.5 opacity-50">:</span>
-                  <span className={cn("text-4xl font-bold transition-colors duration-500", shiftData.isHoliday ? "text-amber-400" : shiftData.isWeekend ? "text-cyan-400" : shiftData.isOvertime ? "text-emerald-400" : "text-indigo-400")}>{s}</span>
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 opacity-80">Время смены</span>
+                <div className="flex items-baseline space-x-1 tabular-nums tracking-tight mb-1 text-white/90">
+                  <span className="text-4xl font-bold">{h}</span>
+                  <span className="text-2xl pb-0.5 opacity-50">:</span>
+                  <span className="text-4xl font-bold">{m}</span>
+                  <span className="text-2xl pb-0.5 opacity-50">:</span>
+                  <span className={cn("text-4xl font-bold transition-colors duration-500", shiftData.isHoliday ? "text-amber-300" : shiftData.isWeekend ? "text-cyan-300" : shiftData.isOvertime ? "text-emerald-300" : "text-indigo-300")}>{s}</span>
                 </div>
               </div>
               
-              {/* Анимация для переработки */}
               <AnimatePresence>
                 {shiftData.overtimeMs > 0 && (
                   <motion.div 
@@ -155,7 +157,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
                     exit={{ opacity: 0, height: 0, marginTop: 0 }}
                     className="flex flex-col items-center overflow-hidden"
                   >
-                    <div className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest backdrop-blur-md", shiftData.isHoliday ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : shiftData.isWeekend ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
+                    <div className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest bg-black/20 backdrop-blur-md", shiftData.isHoliday ? "border-amber-500/30 text-amber-300" : shiftData.isWeekend ? "border-cyan-500/30 text-cyan-300" : "border-emerald-500/30 text-emerald-300")}>
                       {shiftData.isHoliday ? <Gift size={12} /> : shiftData.isWeekend ? <Sun size={12} /> : <Flame size={12} />}
                       <span className="tabular-nums">{ot.h}:{ot.m}:{ot.s}</span>
                     </div>
@@ -163,7 +165,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
                 )}
               </AnimatePresence>
 
-              {/* Анимация для ночных часов */}
               <AnimatePresence>
                 {isNightTime && (
                   <motion.div 
@@ -172,7 +173,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
                     exit={{ opacity: 0, height: 0, marginTop: 0 }}
                     className="flex flex-col items-center overflow-hidden"
                   >
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest backdrop-blur-md bg-blue-500/10 border-blue-500/20 text-blue-400">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest bg-black/20 backdrop-blur-md border-blue-500/30 text-blue-300">
                       <Moon size={12} />
                       <span className="tabular-nums">Ночные: {nt.h}:{nt.m}:{nt.s}</span>
                     </div>
@@ -185,36 +186,42 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         </div>
       </motion.div>
 
+      {/* НОВЫЕ ПРЕМИАЛЬНЫЕ КНОПКИ */}
       <div className="flex gap-4 z-20 w-full max-w-sm px-4">
         {!activeShift ? (
           <motion.button 
-            whileHover={{ scale: 1.02 }} 
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02, transition: { duration: 0.3 } }} 
+            whileTap={{ scale: 0.96, transition: { type: "spring", stiffness: 400, damping: 25 } }}
             onClick={() => startShift(isHolidaySelection)} 
-            className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-3xl py-6 flex items-center justify-center shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-colors group"
+            className="flex-1 rounded-[32px] py-6 flex items-center justify-center transition-colors duration-500 group bg-gradient-to-b from-indigo-500 to-indigo-700 text-white border border-indigo-400/30 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2),0_10px_24px_-4px_rgba(99,102,241,0.6)] hover:shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.2),0_14px_32px_-4px_rgba(99,102,241,0.8)]"
           >
-            <Play size={24} fill="currentColor" className="mr-3 group-hover:scale-110 transition-transform" /> 
-            <span className="font-black text-xl tracking-widest uppercase">Старт</span>
+            <Play size={22} fill="currentColor" className="mr-3 group-hover:scale-110 transition-transform duration-500 drop-shadow-md" /> 
+            <span className="font-bold text-lg tracking-widest uppercase drop-shadow-md">Старт</span>
           </motion.button>
         ) : (
           <>
             <motion.button 
-              whileHover={{ scale: 1.05 }} 
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.05, transition: { duration: 0.3 } }} 
+              whileTap={{ scale: 0.95, transition: { type: "spring", stiffness: 400, damping: 25 } }}
               onClick={togglePause} 
-              className={cn("flex-1 rounded-3xl py-6 flex items-center justify-center shadow-lg transition-colors border", isPaused ? "bg-amber-500 text-black border-amber-500 hover:bg-amber-400" : "bg-white/5 text-white border-white/10 hover:bg-white/10")}
+              className={cn(
+                "flex-1 rounded-[32px] py-6 flex items-center justify-center transition-all duration-500 border", 
+                isPaused 
+                  ? "bg-gradient-to-b from-amber-400 to-amber-600 text-white border-amber-300/40 shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.2),0_10px_24px_-4px_rgba(245,158,11,0.6)]" 
+                  : "bg-gradient-to-b from-white/10 to-white/[0.02] text-gray-300 hover:text-white border-white/10 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_8px_20px_rgba(0,0,0,0.5)]"
+              )}
             >
-              {isPaused ? <Play size={24} fill="currentColor" /> : <Pause size={24} fill="currentColor" />}
+              {isPaused ? <Play size={22} fill="currentColor" className="drop-shadow-md" /> : <Pause size={22} fill="currentColor" className="opacity-90 drop-shadow-sm" />}
             </motion.button>
             
             <motion.button 
-              whileHover={{ scale: 1.02 }} 
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02, transition: { duration: 0.3 } }} 
+              whileTap={{ scale: 0.96, transition: { type: "spring", stiffness: 400, damping: 25 } }}
               onClick={stopShift} 
-              className="flex-[2] bg-rose-600 hover:bg-rose-500 text-white rounded-3xl py-6 flex items-center justify-center shadow-[0_0_30px_rgba(225,29,72,0.3)] transition-colors group"
+              className="flex-[2] rounded-[32px] py-6 flex items-center justify-center transition-colors duration-500 group bg-gradient-to-b from-rose-500 to-rose-700 text-white border border-rose-400/30 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2),0_10px_24px_-4px_rgba(225,29,72,0.6)] hover:shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.2),0_14px_32px_-4px_rgba(225,29,72,0.8)]"
             >
-              <Square size={22} fill="currentColor" className="mr-3 group-hover:scale-90 transition-transform" /> 
-              <span className="font-black text-xl tracking-widest uppercase">Стоп</span>
+              <Square size={20} fill="currentColor" className="mr-3 group-hover:scale-90 transition-transform duration-500 drop-shadow-md" /> 
+              <span className="font-bold text-lg tracking-widest uppercase drop-shadow-md">Стоп</span>
             </motion.button>
           </>
         )}

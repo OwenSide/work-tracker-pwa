@@ -5,7 +5,7 @@ import { getShiftDetails } from './salary';
 import Dashboard from './components/Dashboard';
 import History from './components/History';
 import Settings from './components/Settings';
-import BottomNav from './components/BottomNav'; // <-- Импортируем наше новое меню
+import BottomNav from './components/BottomNav';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -105,19 +105,19 @@ export default function App() {
 
   if (!isAppReady) {
     return (
-      <div className="h-[100dvh] w-full bg-[#0a0a0c] flex items-center justify-center">
+      // Заменили на глубокий черный #030303
+      <div className="h-[100dvh] w-full bg-[#030303] flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="h-[100dvh] w-full bg-[#0a0a0c] text-gray-100 flex flex-col font-sans overflow-hidden">
+    // Заменили фон на #030303 и добавили отступ pt-[max(1.5rem,env(safe-area-inset-top))] для iOS
+    <div className="h-[100dvh] w-full bg-[#030303] text-gray-100 flex flex-col font-sans overflow-hidden pt-[max(1.5rem,env(safe-area-inset-top))]">
       
-      {/* Отступ для челки на айфонах (Safe Area) */}
-      <div style={{ height: 'max(1.5rem, env(safe-area-inset-top))' }} className="w-full shrink-0 z-50 pointer-events-none" />
-
-      <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900/40 via-[#0a0a0c] to-[#0a0a0c]">
+      {/* Сделали градиент от очень легкого белого свечения в центре к глубокому черному #030303 по краям */}
+      <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.02] via-[#030303] to-[#030303]">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.2 }} className="h-full w-full absolute inset-0">
             {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} startShift={startShift} stopShift={stopShift} togglePause={togglePause} elapsed={elapsed} contractType={contractType} hourlyRate={hourlyRate} monthlyRate={monthlyRate} taxStatus={taxStatus} currency="zł" />}

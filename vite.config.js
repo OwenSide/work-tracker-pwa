@@ -27,8 +27,8 @@ export default defineConfig({
         name: 'WorkTracker App',
         short_name: 'WorkTracker',
         description: 'Трекер рабочего времени и заработка',
-        theme_color: '#0a0a0c', // Наш темный фон
-        background_color: '#0a0a0c',
+        theme_color: '#030303', // Наш темный фон
+        background_color: '#030303',
         display: 'standalone', // Та самая магия, скрывающая браузер
         icons: [
           {

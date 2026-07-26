@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame, Sun, Moon, Briefcase, Pill, Printer } from 'lucide-react';
+import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame, Sun, Briefcase, Pill, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getShiftDetails } from '../salary';
-import { generatePDFReport } from '../pdfGenerator'; // <-- ИМПОРТИРУЕМ НАШ НОВЫЙ СЕРВИС
+import { generatePDFReport } from '../pdfGenerator';
 import { cn } from '../utils';
 
 export default function History({ shifts, setShifts, hourlyRate, currency, contractType, monthlyRate, taxStatus }) {
@@ -33,7 +33,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const totalSeconds = Math.floor(Math.max(0, Number(ms) || 0) / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    return `${hours} ч ${minutes} мин`;
+    return `${hours}ч ${minutes}м`;
   };
 
   const handleDeleteShift = (id) => {
@@ -226,69 +226,96 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
   const renderShiftItem = (shift, hideDelete = false) => {
     if (editingShiftId === shift.id) {
       return (
-        <div key={shift.id} className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/30 flex flex-col gap-4 shadow-lg shadow-indigo-500/5">
-          <div className="flex justify-between items-center">
-            <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Редактирование</h4>
-            <button onClick={() => setEditingShiftId(null)} className="text-gray-400 hover:text-white transition-colors"><X size={18} /></button>
+        <div key={shift.id} className="bg-zinc-900 border border-zinc-700 p-4 rounded-2xl flex flex-col gap-3 shadow-lg my-2">
+          <div className="flex justify-between items-center mb-1">
+            <h4 className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Редактирование</h4>
+            <button onClick={() => setEditingShiftId(null)} className="text-zinc-500 hover:text-white p-1"><X size={18} /></button>
           </div>
-          <input type="date" max={maxDateString} value={editDate} onChange={(e) => handleSafeDateChange(e, setEditDate)} className="block min-w-0 w-full max-w-full appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" style={{colorScheme: 'dark'}} />
+          
+          {/* Исправленный инпут даты */}
+          <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
+            <CalendarDays size={16} className="text-zinc-500 shrink-0" />
+            <input type="date" max={maxDateString} value={editDate} onChange={(e) => handleSafeDateChange(e, setEditDate)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+          </div>
+          
+          {/* Исправленные инпуты времени */}
           <div className="flex gap-2 items-center">
-            <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" style={{colorScheme: 'dark'}} />
-            <ArrowRight size={14} className="text-indigo-400 shrink-0" />
-            <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/50 text-white border border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:border-indigo-400 text-sm" style={{colorScheme: 'dark'}} />
+            <div className="flex items-center gap-2 flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
+              <Clock size={16} className="text-zinc-500 shrink-0" />
+              <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+            </div>
+            <ArrowRight size={14} className="text-zinc-600 shrink-0" />
+            <div className="flex items-center gap-2 flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
+              <Clock size={16} className="text-zinc-500 shrink-0" />
+              <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+            </div>
           </div>
+          
           <div className="flex gap-2 flex-col sm:flex-row">
-            <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl py-2.5 px-4 sm:w-1/3 min-w-0">
-              <Coffee size={16} className="text-gray-400 shrink-0" />
-              <input type="number" placeholder="Перерыв (мин)" value={editBreak} onChange={(e) => setEditBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full min-w-0 text-sm placeholder:text-gray-600" />
+            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 sm:w-1/3">
+              <Coffee size={16} className="text-zinc-500 shrink-0" />
+              <input type="number" placeholder="Пауза" value={editBreak} onChange={(e) => setEditBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
             </div>
-            <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl py-2.5 px-4 flex-1 min-w-0">
-              <MessageSquare size={16} className="text-gray-400 shrink-0" />
-              <input type="text" placeholder="Заметка к смене" value={editNote} onChange={(e) => setEditNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full min-w-0 text-sm placeholder:text-gray-600" />
+            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1">
+              <MessageSquare size={16} className="text-zinc-500 shrink-0" />
+              <input type="text" placeholder="Заметка" value={editNote} onChange={(e) => setEditNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
             </div>
           </div>
+
           {contractType === 'oprace' && (!shift.type || shift.type === 'standard') && (
-            <button onClick={() => setEditHoliday(!editHoliday)} className={cn("w-full py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border", editHoliday ? "bg-amber-500/20 text-amber-400 border-amber-500/50" : "bg-black/50 text-gray-500 border-white/10 hover:bg-white/10")}>
-              <Gift size={16} /> Праздничный тариф (x2)
+            <button onClick={() => setEditHoliday(!editHoliday)} className={cn("w-full py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 border", editHoliday ? "bg-amber-500 text-black border-amber-500" : "bg-transparent text-zinc-400 border-zinc-700")}>
+              <Gift size={14} /> Праздничный тариф
             </button>
           )}
-          <div className="flex gap-2 mt-1"><button onClick={handleSaveEdit} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">Сохранить</button></div>
+          
+          <button onClick={handleSaveEdit} className="w-full bg-white hover:bg-zinc-200 text-black font-semibold py-2.5 rounded-xl text-sm mt-1">
+            Сохранить
+          </button>
         </div>
       );
     }
 
     return (
-      <div key={shift.id} className="bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-5 rounded-3xl border border-white/5 flex flex-col gap-3 group">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-200 font-medium text-lg">{new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
-          <div className="flex items-center gap-1">
-            <span className="font-bold text-emerald-400 text-lg flex items-center gap-1 mr-2"><span>+</span><span className="flex items-center">{currency}</span>{(Number(shift.earned) || 0).toFixed(2)}</span>
+      <div key={shift.id} className="group relative flex flex-col py-3.5 px-4 bg-zinc-900/40 hover:bg-zinc-800/60 border border-white/5 rounded-2xl transition-colors">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-zinc-100 font-medium text-sm tracking-wide">
+            {new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' })}
+          </span>
+          <div className="flex items-center gap-3">
+            <span className="font-medium text-emerald-400 text-sm tracking-tight">
+              {currency}{(Number(shift.earned) || 0).toFixed(2)}
+            </span>
             {!hideDelete && (
-              <>
-                <button onClick={() => handleEditClick(shift)} className="text-gray-500 hover:text-indigo-400 bg-transparent hover:bg-indigo-500/10 p-2 rounded-xl transition-all" title="Редактировать"><Pencil size={18} /></button>
-                <button onClick={() => handleDeleteShift(shift.id)} className="text-gray-500 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all" title="Удалить"><Trash2 size={18} /></button>
-              </>
+              <div className="flex opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                <button onClick={() => handleEditClick(shift)} className="text-zinc-500 hover:text-white transition-colors" title="Редактировать"><Pencil size={14} /></button>
+                <button onClick={() => handleDeleteShift(shift.id)} className="text-zinc-500 hover:text-rose-400 transition-colors ml-2" title="Удалить"><Trash2 size={14} /></button>
+              </div>
             )}
           </div>
         </div>
-        <div className="flex flex-col bg-black/20 p-3 rounded-2xl gap-2">
-          <div className="flex justify-between items-center flex-wrap gap-2">
-            <div className="flex items-center text-sm text-gray-400 font-medium">
+
+        <div className="flex justify-between items-end">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center text-xs text-zinc-400 font-mono">
               <span>{new Date(shift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-              <ArrowRight size={14} className="mx-2 opacity-50" />
+              <ArrowRight size={12} className="mx-1.5 text-zinc-600" />
               <span>{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              {shift.pauseMs > 0 && (
+                <span className="ml-2 pl-2 border-l border-white/10 text-zinc-500 flex items-center gap-1">
+                  <Coffee size={10} /> {Math.round(shift.pauseMs / 60000)}м
+                </span>
+              )}
             </div>
-            <div className="flex gap-2">
-              {shift.pauseMs > 0 && <div className="flex items-center text-amber-500/90 bg-amber-500/10 px-2 py-1 rounded-lg font-mono text-xs" title="Время перерыва"><Coffee size={12} className="mr-1.5" />{Math.round(shift.pauseMs / 60000)} м</div>}
-              <div className="flex items-center text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-xl font-mono text-sm"><Clock size={12} className="mr-2" />{formatTime(shift.durationMs)}</div>
-            </div>
+            {shift.note && (
+              <div className="flex items-center gap-1.5 text-zinc-500 text-xs mt-0.5">
+                <MessageSquare size={10} className="shrink-0" />
+                <span className="truncate max-w-[200px] font-light">{shift.note}</span>
+              </div>
+            )}
           </div>
-          {shift.note && (
-            <div className="flex items-start gap-2 pt-2 mt-1 border-t border-white/5 text-gray-400 text-sm">
-              <MessageSquare size={14} className="mt-0.5 shrink-0 opacity-70" />
-              <span className="leading-snug italic break-words min-w-0">{shift.note}</span>
-            </div>
-          )}
+          <div className="text-xs font-mono text-zinc-300 bg-zinc-800/50 px-2 py-1 rounded-md border border-white/[0.03]">
+            {formatTime(shift.durationMs)}
+          </div>
         </div>
       </div>
     );
@@ -299,154 +326,201 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
   const mainAmount = Number(displayStats?.earned || 0).toFixed(2);
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      <div className="flex justify-between items-end mb-6 bg-white/[0.02] p-5 rounded-3xl border border-white/5 relative overflow-hidden">
-        <div className="relative z-10 w-full pr-12">
-          <h2 className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">{activeTab === 'current' ? 'Заработано в этом месяце' : 'Всего за всё время'}</h2>
-          <div className="text-3xl font-bold flex items-center">
-            <span className="text-emerald-400 flex items-center mr-1">{currency}</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight">{mainAmount}</span>
-          </div>
-          {showBadges && (
-            <div className="mt-2.5 flex items-center gap-1.5 text-xs font-bold text-amber-400 bg-amber-500/10 w-fit px-3 py-1.5 rounded-xl border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
-              <Flame size={14} className="animate-pulse" />
-              <span className="uppercase tracking-widest">Переработки: {formatTime(displayStats.overtimeMs)}</span>
+    <div className="p-3 sm:p-5 h-full flex flex-col bg-black">
+      
+      {/* Компактная шапка */}
+      <div className="relative mb-5 bg-zinc-900/60 p-5 rounded-[1.5rem] border border-white/10 overflow-hidden">
+        <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none"></div>
+        
+        <div className="relative z-10 flex justify-between items-center">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">
+              {activeTab === 'current' ? 'За месяц' : 'Общий баланс'}
+            </span>
+            <div className="text-3xl font-light text-white flex items-center tracking-tight">
+              <span className="text-emerald-500 font-light mr-1.5 text-2xl">{currency}</span>
+              {mainAmount}
             </div>
-          )}
+          </div>
+          
+          <div className="bg-zinc-800/50 p-3 rounded-xl border border-white/5">
+            <Wallet className="text-zinc-400" size={20} strokeWidth={1.5} />
+          </div>
         </div>
-        <div className="absolute right-5 top-5 bg-emerald-500/10 p-3 rounded-2xl z-10"><Wallet className="text-emerald-400" size={28} /></div>
-        <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+
+        {showBadges && (
+          <div className="relative z-10 mt-3 flex items-center gap-1.5 text-[11px] font-medium text-black bg-amber-400 w-fit px-2.5 py-1 rounded-md">
+            <Flame size={12} className="animate-pulse" />
+            <span className="uppercase tracking-wider">Переработки: {formatTime(displayStats.overtimeMs)}</span>
+          </div>
+        )}
       </div>
 
-      <div className="flex bg-black/40 p-1.5 rounded-2xl mb-6 border border-white/5">
-        <button onClick={() => setActiveTab('current')} className={cn("flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2", activeTab === 'current' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300")}><Clock size={16} />Текущий</button>
-        <button onClick={() => setActiveTab('archive')} className={cn("flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2", activeTab === 'archive' ? "bg-indigo-500/20 text-indigo-300 shadow-sm" : "text-gray-500 hover:text-gray-300")}><CalendarDays size={16} />Архив</button>
+      {/* Компактные табы */}
+      <div className="flex bg-zinc-900 p-1 rounded-xl mb-4 border border-white/5 shrink-0">
+        <button onClick={() => setActiveTab('current')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5", activeTab === 'current' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300")}>
+          <Clock size={14} /> Текущий
+        </button>
+        <button onClick={() => setActiveTab('archive')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5", activeTab === 'archive' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300")}>
+          <CalendarDays size={14} /> Архив
+        </button>
       </div>
 
-      {activeTab === 'current' && (
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 flex flex-col min-h-0">
-          <div className="flex justify-between items-center mb-4 px-1">
-            <h3 className="text-lg font-semibold text-white/90">Смены месяца</h3>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => generatePDFReport({ monthData: currentMonthData, contractType, hourlyRate, monthlyRate, taxStatus })} 
-                className="p-2 rounded-xl transition-colors bg-white/5 text-gray-300 hover:bg-emerald-500/20 hover:text-emerald-400" 
-                title="Скачать PDF отчет"
-              >
-                <Printer size={20} />
-              </button>
-              <button 
-                onClick={() => { if (!isManualEntryOpen) setEditingShiftId(null); setIsManualEntryOpen(!isManualEntryOpen); }} 
-                className={cn("p-2 rounded-xl transition-colors", isManualEntryOpen ? "bg-rose-500/20 text-rose-400" : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30")}
-              >
-                {isManualEntryOpen ? <X size={20} /> : <Plus size={20} />}
-              </button>
+      {/* Контейнер списков */}
+      <div className="flex-1 min-h-0 flex flex-col relative">
+        {activeTab === 'current' && (
+          <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="h-full flex flex-col">
+            <div className="flex justify-between items-center mb-3 px-1 shrink-0">
+              <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wider">Смены месяца</h3>
+              <div className="flex gap-1.5">
+                <button 
+                  onClick={() => generatePDFReport({ monthData: currentMonthData, contractType, hourlyRate, monthlyRate, taxStatus })} 
+                  className="p-1.5 rounded-lg transition-all bg-zinc-900 text-zinc-400 hover:bg-white hover:text-black border border-white/5" 
+                >
+                  <Printer size={16} />
+                </button>
+                <button 
+                  onClick={() => { if (!isManualEntryOpen) setEditingShiftId(null); setIsManualEntryOpen(!isManualEntryOpen); }} 
+                  className={cn("p-1.5 rounded-lg transition-all border", isManualEntryOpen ? "bg-zinc-800 text-white border-zinc-700" : "bg-white text-black border-transparent")}
+                >
+                  {isManualEntryOpen ? <X size={16} /> : <Plus size={16} strokeWidth={2.5} />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          {isManualEntryOpen && (
-            <div className="bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20 mb-4 flex flex-col gap-4">
-              <h4 className="text-xs text-indigo-300 font-bold uppercase tracking-widest">Добавить вручную</h4>
-              {contractType === 'oprace' && (
-                <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 mb-2">
-                  <button onClick={() => setShiftType('standard')} className={cn("flex-1 py-2 rounded-lg text-xs font-bold transition-all flex justify-center items-center gap-1.5", shiftType === 'standard' ? "bg-indigo-500/20 text-indigo-300" : "text-gray-500 hover:text-gray-300")}><Briefcase size={14}/> Работа</button>
-                  <button onClick={() => setShiftType('urlop')} className={cn("flex-1 py-2 rounded-lg text-xs font-bold transition-all flex justify-center items-center gap-1.5", shiftType === 'urlop' ? "bg-emerald-500/20 text-emerald-300" : "text-gray-500 hover:text-gray-300")}><Sun size={14}/> Urlop</button>
-                  <button onClick={() => setShiftType('l4')} className={cn("flex-1 py-2 rounded-lg text-xs font-bold transition-all flex justify-center items-center gap-1.5", shiftType === 'l4' ? "bg-rose-500/20 text-rose-300" : "text-gray-500 hover:text-gray-300")}><Pill size={14}/> L4</button>
-                </div>
-              )}
-              {shiftType !== 'standard' ? (
-                <div className="flex gap-3 items-center">
-                  <div className="flex-1"><label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 block pl-1">С (Дата)</label><input type="date" max={maxDateString} value={manualDate} onChange={(e) => handleSafeDateChange(e, setManualDate)} className="block min-w-0 w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} /></div>
-                  <ArrowRight size={16} className="text-gray-500 shrink-0 mt-5" />
-                  <div className="flex-1"><label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 block pl-1">По (Дата)</label><input type="date" max={maxDateString} value={manualEndDate} onChange={(e) => handleSafeDateChange(e, setManualEndDate)} className="block min-w-0 w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} /></div>
-                </div>
-              ) : (
-                <input type="date" max={maxDateString} value={manualDate} onChange={(e) => handleSafeDateChange(e, setManualDate)} className="block min-w-0 w-full max-w-full appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
-              )}
-              {shiftType === 'standard' && (
-                <>
-                  <div className="flex gap-3 items-center">
-                    <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
-                    <ArrowRight size={16} className="text-gray-500 shrink-0" />
-                    <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="block min-w-0 flex-1 appearance-none bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500" style={{colorScheme: 'dark'}} />
-                  </div>
-                  <div className="flex gap-2 flex-col sm:flex-row">
-                    <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 sm:w-1/3 min-w-0"><Coffee size={16} className="text-gray-500 shrink-0" /><input type="number" placeholder="Перерыв (мин)" value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" /></div>
-                    <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 flex-1 min-w-0"><MessageSquare size={16} className="text-gray-500 shrink-0" /><input type="text" placeholder="Заметка" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" /></div>
-                  </div>
-                  {contractType === 'oprace' && (
-                    <button onClick={() => setManualHoliday(!manualHoliday)} className={cn("w-full py-3 rounded-xl text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border", manualHoliday ? "bg-amber-500/20 text-amber-400 border-amber-500/50" : "bg-black/40 text-gray-500 border-white/5 hover:bg-white/5")}><Gift size={16} /> Праздничный тариф (x2)</button>
-                  )}
-                </>
-              )}
-              {shiftType !== 'standard' && (
-                <div className="flex items-center gap-3 bg-black/40 text-white border border-white/5 rounded-xl py-3 px-4 min-w-0 mt-1"><MessageSquare size={16} className="text-gray-500 shrink-0" /><input type="text" placeholder="Причина или заметка (необязательно)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent min-w-0 focus:outline-none w-full placeholder:text-gray-600" /></div>
-              )}
-              <button onClick={handleAddManualShift} disabled={!manualDate || (shiftType === 'standard' && (!manualStartTime || !manualEndTime))} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-3 rounded-xl transition-colors mt-2">Сохранить</button>
-            </div>
-          )}
+            <div className="flex-1 overflow-y-auto pb-24 no-scrollbar">
+              <AnimatePresence>
+                {isManualEntryOpen && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-4">
+                    <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col gap-4">
+                      
+                      {/* НОВЫЙ ЗАГОЛОВОК */}
+                      <div className="flex justify-between items-center mb-[-0.5rem]">
+                        <h4 className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Ручное добавление</h4>
+                      </div>
 
-          <div className="flex-1 overflow-y-auto space-y-3 pb-36 no-scrollbar">
-            {currentMonthData.shifts.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60"><HistoryIcon size={64} strokeWidth={1} /><p className="text-sm tracking-wide">В этом месяце смен пока нет</p></div>
-            ) : (currentMonthData.shifts.map(shift => renderShiftItem(shift, false)))}
-          </div>
-        </motion.div>
-      )}
-
-      {activeTab === 'archive' && (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 overflow-y-auto space-y-4 pb-36 no-scrollbar">
-          {archiveMonths.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-60"><CalendarDays size={64} strokeWidth={1} /><p className="text-sm tracking-wide">Архив пока пуст</p></div>
-          ) : (
-            archiveMonths.map(month => (
-              <div key={month.id} className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
-                <div className="w-full flex flex-col hover:bg-white/[0.02] transition-colors relative">
-                  <div className="flex justify-between items-start w-full p-5">
-                    <div className="flex-1 cursor-pointer flex flex-col gap-2" onClick={() => setExpandedArchive(expandedArchive === month.id ? null : month.id)}>
-                      <span className="text-white font-semibold text-lg">{month.label}</span>
-                      <div className="flex flex-wrap gap-4 mt-1">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Заработано</span>
-                          <span className="text-emerald-400 font-bold flex items-center text-sm"><span className="flex items-center mr-1">{currency}</span>{(Number(month.earned) || 0).toFixed(2)}</span>
+                      {contractType === 'oprace' && (
+                        <div className="flex bg-zinc-950 p-1 rounded-xl border border-white/5">
+                          <button onClick={() => setShiftType('standard')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'standard' ? "bg-zinc-800 text-white" : "text-zinc-500")}><Briefcase size={12}/> Работа</button>
+                          <button onClick={() => setShiftType('urlop')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'urlop' ? "bg-emerald-500/20 text-emerald-400" : "text-zinc-500")}><Sun size={12}/> Urlop</button>
+                          <button onClick={() => setShiftType('l4')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'l4' ? "bg-rose-500/20 text-rose-400" : "text-zinc-500")}><Pill size={12}/> L4</button>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Всего часов</span>
-                          <span className="text-indigo-300 font-mono text-sm">{formatTime(month.totalDuration)}</span>
-                        </div>
-                        {contractType === 'oprace' && month.overtimeMs > 0 && (
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-amber-500/70 uppercase tracking-wider font-bold mb-0.5 flex items-center gap-1"><Flame size={10}/> Переработки</span>
-                            <span className="text-amber-400 font-mono text-sm">{formatTime(month.overtimeMs)}</span>
+                      )}
+
+                      {shiftType !== 'standard' ? (
+                        <div className="flex gap-2 items-center">
+                          <div className="flex-1 flex flex-col gap-1">
+                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider pl-1">С</label>
+                            {/* Исправленный инпут даты начала */}
+                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
+                              <CalendarDays size={14} className="text-zinc-500 shrink-0" />
+                              <input type="date" max={maxDateString} value={manualDate} onChange={(e) => handleSafeDateChange(e, setManualDate)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+                            </div>
                           </div>
-                        )}
+                          <ArrowRight size={14} className="text-zinc-600 mt-5 shrink-0" />
+                          <div className="flex-1 flex flex-col gap-1">
+                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider pl-1">По</label>
+                            {/* Исправленный инпут даты окончания */}
+                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
+                              <CalendarDays size={14} className="text-zinc-500 shrink-0" />
+                              <input type="date" max={maxDateString} value={manualEndDate} onChange={(e) => handleSafeDateChange(e, setManualEndDate)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Исправленный одиночный инпут даты */
+                        <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
+                          <CalendarDays size={16} className="text-zinc-500 shrink-0" />
+                          <input type="date" max={maxDateString} value={manualDate} onChange={(e) => handleSafeDateChange(e, setManualDate)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+                        </div>
+                      )}
+
+                      {shiftType === 'standard' && (
+                        <>
+                          <div className="flex gap-2 items-center">
+                            {/* Исправленные инпуты времени */}
+                            <div className="flex items-center gap-2 flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
+                              <Clock size={14} className="text-zinc-500 shrink-0" />
+                              <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+                            </div>
+                            <ArrowRight size={14} className="text-zinc-600 shrink-0" />
+                            <div className="flex items-center gap-2 flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
+                              <Clock size={14} className="text-zinc-500 shrink-0" />
+                              <input type="time" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2 flex-col sm:flex-row">
+                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 sm:w-1/3"><Coffee size={14} className="text-zinc-500 shrink-0" /><input type="number" placeholder="Пауза" value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" /></div>
+                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1"><MessageSquare size={14} className="text-zinc-500 shrink-0" /><input type="text" placeholder="Заметка (опционально)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" /></div>
+                          </div>
+                          {contractType === 'oprace' && (
+                            <button onClick={() => setManualHoliday(!manualHoliday)} className={cn("w-full py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 border mt-1", manualHoliday ? "bg-amber-500 text-black border-amber-500" : "bg-transparent text-zinc-400 border-zinc-800")}><Gift size={14} /> Праздничный тариф</button>
+                          )}
+                        </>
+                      )}
+                      
+                      <button onClick={handleAddManualShift} disabled={!manualDate || (shiftType === 'standard' && (!manualStartTime || !manualEndTime))} className="w-full bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-semibold py-3 rounded-xl transition-colors text-sm">Добавить</button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Сам список карточек без лишних оберток */}
+              <div className="flex flex-col gap-2">
+                {currentMonthData.shifts.length === 0 ? (
+                  <div className="py-10 flex flex-col items-center justify-center text-zinc-600 space-y-3"><HistoryIcon size={32} strokeWidth={1} /><p className="text-xs tracking-widest uppercase">Нет записей</p></div>
+                ) : (currentMonthData.shifts.map(shift => renderShiftItem(shift, false)))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'archive' && (
+          <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="h-full flex flex-col">
+            <div className="flex-1 overflow-y-auto pb-24 no-scrollbar flex flex-col gap-3">
+              {archiveMonths.length === 0 ? (
+                <div className="py-10 flex flex-col items-center justify-center text-zinc-600 space-y-3"><CalendarDays size={32} strokeWidth={1} /><p className="text-xs tracking-widest uppercase">Архив пуст</p></div>
+              ) : (
+                archiveMonths.map(month => (
+                  <div key={month.id} className="bg-zinc-900/50 border border-white/5 rounded-2xl overflow-hidden">
+                    <div className="flex justify-between items-center w-full p-4 cursor-pointer hover:bg-zinc-800/30 transition-colors" onClick={() => setExpandedArchive(expandedArchive === month.id ? null : month.id)}>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-white font-medium text-sm">{month.label}</span>
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="text-emerald-400">{currency}{(Number(month.earned) || 0).toFixed(2)}</span>
+                          <span className="text-zinc-500">•</span>
+                          <span className="text-zinc-400 font-mono">{formatTime(month.totalDuration)}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); generatePDFReport({ monthData: month, contractType, hourlyRate, monthlyRate, taxStatus }); }} 
+                          className="text-zinc-500 hover:text-white p-2 rounded-lg transition-all bg-zinc-800/50" 
+                        >
+                          <Printer size={14} />
+                        </button>
+                        <button onClick={(e) => handleDeleteMonth(e, month.id, month.label)} className="text-zinc-600 hover:text-rose-400 p-2 rounded-lg transition-all"><Trash2 size={14} /></button>
+                        <div className="text-zinc-500 ml-1">{expandedArchive === month.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 ml-2 mt-1">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); generatePDFReport({ monthData: month, contractType, hourlyRate, monthlyRate, taxStatus }); }} 
-                        className="text-gray-400 hover:text-emerald-400 bg-transparent hover:bg-emerald-500/10 p-2 rounded-xl transition-all z-10" 
-                        title="Скачать PDF отчет"
-                      >
-                        <Printer size={18} />
-                      </button>
-                      <button onClick={(e) => handleDeleteMonth(e, month.id, month.label)} className="text-gray-600 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 p-2 rounded-xl transition-all z-10"><Trash2 size={18} /></button>
-                      <div className="p-2 text-gray-400 pointer-events-none">{expandedArchive === month.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</div>
-                    </div>
+                    
+                    <AnimatePresence>
+                      {expandedArchive === month.id && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/[0.04] bg-black/20">
+                          <div className="p-3 flex flex-col gap-2">
+                            {month.shifts.map(shift => renderShiftItem(shift, true))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                </div>
-                <AnimatePresence>
-                  {expandedArchive === month.id && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 bg-black/20">
-                      <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto pb-10 no-scrollbar">{month.shifts.map(shift => renderShiftItem(shift, true))}</div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))
-          )}
-        </motion.div>
-      )}
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }
