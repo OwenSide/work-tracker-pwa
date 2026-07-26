@@ -49,7 +49,7 @@ export default function BottomNav({ activeTab, setActiveTab }) {
                 "relative z-10 overflow-hidden transition-all duration-300 ease-out flex items-center", 
                 isActive ? "max-w-[80px] opacity-100 ml-2.5" : "max-w-0 opacity-0 ml-0"
               )}>
-                <span className="text-[11px] font-bold uppercase tracking-widest whitespace-nowrap">
+                <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
                   {tab.label}
                 </span>
               </div>
