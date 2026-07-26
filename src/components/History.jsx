@@ -78,7 +78,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
   const handleSaveEdit = () => {
     if (!editDate || !editStartTime || !editEndTime) return;
     const start = new Date(`${editDate}T${editStartTime}`);
-    if (start > new Date()) { alert('Время начала не может быть в будущем!'); return; }
     
     let end = new Date(`${editDate}T${editEndTime}`);
     if (end < start) end.setDate(end.getDate() + 1);
@@ -146,7 +145,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     } else {
       if (!manualStartTime || !manualEndTime) return;
       const start = new Date(`${manualDate}T${manualStartTime}`);
-      if (start > new Date()) return alert('Время начала не может быть в будущем!');
       const end = new Date(`${manualDate}T${manualEndTime}`);
       if (end < start) end.setDate(end.getDate() + 1);
       const pauseMs = (parseInt(manualBreak) || 0) * 60000;
@@ -214,15 +212,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     return { currentMonthData: current, archiveMonths: archives, globalStats: gStats };
   }, [shifts, contractType, hourlyRate, monthlyRate, taxStatus]);
 
-  const today = new Date();
-  const maxDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-  const handleSafeDateChange = (e, setter) => {
-    const selectedDate = e.target.value;
-    if (selectedDate > maxDateString) { alert('Нельзя выбрать дату из будущего!'); setter(maxDateString); } 
-    else { setter(selectedDate); }
-  };
-
   const renderShiftItem = (shift, hideDelete = false) => {
     if (editingShiftId === shift.id) {
       return (
@@ -232,13 +221,12 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
             <button onClick={() => setEditingShiftId(null)} className="text-zinc-500 hover:text-white p-1"><X size={18} /></button>
           </div>
           
-          {/* Исправленный инпут даты */}
+          {/* Инпут даты без ограничений */}
           <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
             <CalendarDays size={16} className="text-zinc-500 shrink-0" />
-            <input type="date" max={maxDateString} value={editDate} onChange={(e) => handleSafeDateChange(e, setEditDate)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+            <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
           </div>
           
-          {/* Исправленные инпуты времени */}
           <div className="flex gap-2 items-center">
             <div className="flex items-center gap-2 flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
               <Clock size={16} className="text-zinc-500 shrink-0" />
@@ -394,7 +382,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-4">
                     <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col gap-4">
                       
-                      {/* НОВЫЙ ЗАГОЛОВОК */}
                       <div className="flex justify-between items-center mb-[-0.5rem]">
                         <h4 className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Ручное добавление</h4>
                       </div>
@@ -411,34 +398,30 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                         <div className="flex gap-2 items-center">
                           <div className="flex-1 flex flex-col gap-1">
                             <label className="text-[10px] text-zinc-500 uppercase tracking-wider pl-1">С</label>
-                            {/* Исправленный инпут даты начала */}
                             <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
                               <CalendarDays size={14} className="text-zinc-500 shrink-0" />
-                              <input type="date" max={maxDateString} value={manualDate} onChange={(e) => handleSafeDateChange(e, setManualDate)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+                              <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
                             </div>
                           </div>
                           <ArrowRight size={14} className="text-zinc-600 mt-5 shrink-0" />
                           <div className="flex-1 flex flex-col gap-1">
                             <label className="text-[10px] text-zinc-500 uppercase tracking-wider pl-1">По</label>
-                            {/* Исправленный инпут даты окончания */}
                             <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
                               <CalendarDays size={14} className="text-zinc-500 shrink-0" />
-                              <input type="date" max={maxDateString} value={manualEndDate} onChange={(e) => handleSafeDateChange(e, setManualEndDate)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+                              <input type="date" value={manualEndDate} onChange={(e) => setManualEndDate(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
                             </div>
                           </div>
                         </div>
                       ) : (
-                        /* Исправленный одиночный инпут даты */
                         <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
                           <CalendarDays size={16} className="text-zinc-500 shrink-0" />
-                          <input type="date" max={maxDateString} value={manualDate} onChange={(e) => handleSafeDateChange(e, setManualDate)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
+                          <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
                         </div>
                       )}
 
                       {shiftType === 'standard' && (
                         <>
                           <div className="flex gap-2 items-center">
-                            {/* Исправленные инпуты времени */}
                             <div className="flex items-center gap-2 flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
                               <Clock size={14} className="text-zinc-500 shrink-0" />
                               <input type="time" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
@@ -466,7 +449,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                 )}
               </AnimatePresence>
 
-              {/* Сам список карточек без лишних оберток */}
               <div className="flex flex-col gap-2">
                 {currentMonthData.shifts.length === 0 ? (
                   <div className="py-10 flex flex-col items-center justify-center text-zinc-600 space-y-3"><HistoryIcon size={32} strokeWidth={1} /><p className="text-xs tracking-widest uppercase">Нет записей</p></div>
