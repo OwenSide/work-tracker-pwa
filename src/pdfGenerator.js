@@ -102,6 +102,24 @@ export function generatePDFReport({ monthData, contractType, hourlyRate, monthly
           font-size: 13px; 
           background: #fff;
         }
+        /* --- Стили для кнопки закрытия --- */
+        .no-print-btn {
+          display: inline-block;
+          margin-bottom: 25px;
+          padding: 10px 20px;
+          background-color: #ef4444;
+          color: #ffffff;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .no-print-btn:active {
+          background-color: #dc2626;
+        }
+        /* --------------------------------- */
         .header { 
           margin-bottom: 40px; 
           border-bottom: 2px solid #e5e7eb;
@@ -169,11 +187,16 @@ export function generatePDFReport({ monthData, contractType, hourlyRate, monthly
         @media print {
           body { padding: 0; background: transparent; }
           .summary { border: 1px solid #e5e7eb; background: transparent; }
+          /* --- Скрываем кнопку при печати и в PDF --- */
+          .no-print-btn { display: none !important; }
           @page { margin: 1.5cm; }
         }
       </style>
     </head>
     <body>
+      <!-- Кнопка для закрытия окна -->
+      <button class="no-print-btn" onclick="window.close()">✖ Закрыть документ</button>
+      
       <div class="header">
         <h1>${title}</h1>
         <h2>Месяц: ${monthData.label}</h2>
