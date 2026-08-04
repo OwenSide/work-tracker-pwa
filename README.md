@@ -46,7 +46,7 @@
 
   | ⏱ Dashboard | 📊 History | ⚙️ Settings |
   | :---: | :---: | :---: |
-  | ![Dashboard](https://github.com/user-attachments/assets/b3e5dca9-caba-4472-9148-aa82a279b0e1) | ![History](https://github.com/user-attachments/assets/f5c36fcb-4915-48c9-aa20-1c89c99d7bba) | ![Settings](https://github.com/user-attachments/assets/6e1ad8c6-d2c6-402b-9fcc-a9e304bb7f9d) |
+  | <img src="https://github.com/user-attachments/assets/b3e5dca9-caba-4472-9148-aa82a279b0e1" width="250"> | <img src="https://github.com/user-attachments/assets/f5c36fcb-4915-48c9-aa20-1c89c99d7bba" width="250"> | <img src="https://github.com/user-attachments/assets/6e1ad8c6-d2c6-402b-9fcc-a9e304bb7f9d" width="250"> |
 
 </details>
 
