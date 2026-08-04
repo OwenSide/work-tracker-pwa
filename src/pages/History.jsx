@@ -174,7 +174,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const now = new Date();
     const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
     const groups = {};
-    const gStats = { earned: 0, overtimeMs: 0 };
+    const gStats = { earned: 0, overtimeMs: 0, totalDuration: 0 };
     
     shifts.forEach(shift => {
       const d = new Date(shift.startTime);
@@ -204,6 +204,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       
       gStats.earned += safeEarned;
       gStats.overtimeMs += shiftOvertime;
+      gStats.totalDuration += safeDuration;
     });
 
     const current = groups[currentKey] || { shifts: [], label: 'Текущий месяц', earned: 0, totalDuration: 0, overtimeMs: 0 }; 
@@ -221,7 +222,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
             <button onClick={() => setEditingShiftId(null)} className="text-zinc-500 hover:text-white p-1"><X size={18} /></button>
           </div>
           
-          {/* Инпут даты без ограничений */}
           <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
             <CalendarDays size={16} className="text-zinc-500 shrink-0" />
             <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
@@ -336,12 +336,26 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
           </div>
         </div>
 
-        {showBadges && (
-          <div className="relative z-10 mt-3 flex items-center gap-1.5 text-[11px] font-medium text-black bg-amber-400 w-fit px-2.5 py-1 rounded-md">
-            <Flame size={12} className="animate-pulse" />
-            <span className="uppercase tracking-wider">Переработки: {formatTime(displayStats.overtimeMs)}</span>
+        {/* Информационные бейджи (Время и Переработки) */}
+        <div className="relative z-10 mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-400 bg-black/40 border border-white/5 px-2.5 py-1.5 rounded-lg backdrop-blur-md whitespace-nowrap">
+            <Clock size={12} className="text-zinc-500 shrink-0" />
+            <span className="uppercase tracking-wider mt-0.5">
+              Всего: <span className="text-white font-mono ml-0.5">{formatTime(displayStats.totalDuration)}</span>
+            </span>
           </div>
-        )}
+
+          {showBadges && (
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg backdrop-blur-md whitespace-nowrap">
+              <Flame size={12} className="shrink-0" />
+              <span className="uppercase tracking-wider mt-0.5">
+                Сверх: <span className="font-mono ml-0.5">{formatTime(displayStats.overtimeMs)}</span>
+              </span>
+            </div>
+          )}
+          
+        </div>
       </div>
 
       {/* Компактные табы */}
