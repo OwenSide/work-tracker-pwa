@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  overscroll-behavior-y: none;
+}
+
+html, body {
+  background-color: #030303; 
+  color: white;
+  overscroll-behavior: none; 
+}
+
+@layer base {
+  html, body, #root {
+    overscroll-behavior-y: none;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}

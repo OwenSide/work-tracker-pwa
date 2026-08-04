@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Square, Pause, Coffee, Gift, Flame, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-// Импортируем вынесенную анимацию
-import ProgressCircle from './ProgressCircle';
-import { getShiftDetails } from '../salary';
-import { cn } from '../utils';
+import ProgressCircle from '../components/ProgressCircle';
+import { getShiftDetails } from '../utils/salary';
+import { cn } from '../utils/utils';
 
 export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
   const [shiftData, setShiftData] = useState({ earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0 });
@@ -44,7 +43,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
   const isPaused = activeShift && activeShift.isPaused;
   const isNightTime = shiftData.nightMs > 0;
 
-  // Динамические цвета для СТЕКЛЯННОГО ФОНА центрального круга (оставляем здесь)
+  // Динамические цвета для СТЕКЛЯННОГО ФОНА центрального круга 
   let glassBg = "bg-gradient-to-br from-white/5 to-white/[0.01]";
   let glassBorder = "border-white/10";
   
@@ -122,7 +121,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         className="relative mb-14 mt-4 flex justify-center items-center w-80 h-80"
       >
         
-        {/* --- ИСПОЛЬЗУЕМ ВЫНЕСЕННЫЙ КОМПОНЕНТ АНИМАЦИИ --- */}
+        {/* ---  ВЫНЕСЕННЫЙ КОМПОНЕНТ АНИМАЦИИ --- */}
         <ProgressCircle 
           elapsed={elapsed} 
           shiftData={shiftData} 
@@ -130,7 +129,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
           isPaused={isPaused} 
         />
 
-        {/* СТЕКЛЯННАЯ ОСНОВА ЦЕНТРАЛЬНОГО КРУГА (остается в Dashboard для контента) */}
+        {/* СТЕКЛЯННАЯ ОСНОВА ЦЕНТРАЛЬНОГО КРУГА  */}
         <div className={cn(
           "absolute inset-0 rounded-full border border-white/5 flex flex-col items-center justify-center transition-all duration-700 overflow-hidden",
           "backdrop-blur-2xl shadow-[inset_0_0_50px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.8)]",
@@ -203,7 +202,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         </div>
       </motion.div>
 
-      {/* КНОПКИ УПРАВЛЕНИЯ (остаются в Dashboard) */}
+      {/* КНОПКИ УПРАВЛЕНИЯ  */}
       <div className="flex gap-4 z-20 w-full max-w-sm px-4">
         {!activeShift ? (
           <motion.button 
@@ -222,14 +221,13 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
               whileTap={{ scale: 0.95, transition: { type: "spring", stiffness: 400, damping: 25 } }}
               onClick={togglePause} 
               className={cn(
-                "flex-1 rounded-[32px] py-6 flex items-center justify-center transition-all duration-500 border relative", // Убрали overflow-hidden
+                "flex-1 rounded-[32px] py-6 flex items-center justify-center transition-all duration-500 border relative", 
                 isPaused 
                   ? "bg-gradient-to-b from-amber-400 to-amber-600 text-white border-amber-300/40 shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.2),0_10px_24px_-4px_rgba(245,158,11,0.6)]" 
-                  : "bg-zinc-900/90 text-gray-300 hover:text-white border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_8px_20px_rgba(0,0,0,0.5)]" // Заменили градиент на безопасный цвет для iOS
+                  : "bg-zinc-900/90 text-gray-300 hover:text-white border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_8px_20px_rgba(0,0,0,0.5)]" 
               )}
-              style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }} // Жесткий хак для обрезки углов на iOS
+              style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }} 
             >
-              {/* Добавили rounded-t-[32px] самому блику */}
               <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none rounded-t-[32px]" />
               
               {isPaused ? <Play size={22} fill="currentColor" className="drop-shadow-md relative z-10" /> : <Pause size={22} fill="currentColor" className="opacity-90 drop-shadow-sm relative z-10" />}

@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame, Sun, Briefcase, Pill, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getShiftDetails } from '../salary';
-import { generatePDFReport } from '../pdfGenerator';
-import { cn } from '../utils';
+import { getShiftDetails } from '../utils/salary';
+import { generatePDFReport } from '../utils/pdfGenerator';
+import { cn } from '../utils/utils';
 
 export default function History({ shifts, setShifts, hourlyRate, currency, contractType, monthlyRate, taxStatus }) {
   const [activeTab, setActiveTab] = useState('current');

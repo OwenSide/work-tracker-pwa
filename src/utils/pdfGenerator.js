@@ -1,4 +1,4 @@
-import { getShiftDetails } from './salary';
+import { getShiftDetails } from '../utils/salary';
 
 // Вспомогательная функция для красивого формата времени (ЧЧ:ММ)
 const formatPrintTime = (ms) => {

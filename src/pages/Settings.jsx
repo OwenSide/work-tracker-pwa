@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
-import { Download, Trash2, AlertTriangle, FileCode, Upload, Briefcase, GraduationCap, User, Settings as SettingsIcon } from 'lucide-react';
-import { cn } from '../utils';
+import { Download, Trash2, AlertTriangle, FileCode, Upload, Briefcase, GraduationCap, User, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
+import { cn } from '../utils/utils';
 
 export default function Settings({ 
   contractType, setContractType, 
@@ -18,7 +18,6 @@ export default function Settings({
       return;
     }
 
-    // Собираем всё в единый объект бэкапа
     const backupData = {
       version: 1,
       contractType,
@@ -54,7 +53,6 @@ export default function Settings({
       try {
         const parsed = JSON.parse(e.target.result);
         
-        // Поддерживаем как новый формат (объект с настройками), так и старый (просто массив смен)
         let importedShifts = [];
         let importedConfig = null;
 
@@ -67,7 +65,6 @@ export default function Settings({
           throw new Error('Неверный формат');
         }
 
-        // Восстанавливаем настройки, если они были в файле
         if (importedConfig) {
           if (importedConfig.contractType) setContractType(importedConfig.contractType);
           if (importedConfig.hourlyRate) setHourlyRate(importedConfig.hourlyRate);
@@ -202,8 +199,8 @@ export default function Settings({
           )}
         </div>
 
-        {/* Блок: Управление данными (iOS Style List) */}
-        <div className="mb-6">
+        {/* Блок: Управление данными */}
+        <div className="mb-2">
           <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mb-2 ml-3">Резервное копирование</label>
           <div className="bg-zinc-900/60 rounded-[1.5rem] border border-white/[0.04] backdrop-blur-md overflow-hidden flex flex-col">
             
@@ -214,8 +211,8 @@ export default function Settings({
                   <Download size={18} className="text-zinc-300" strokeWidth={2} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-medium text-sm text-zinc-200">Экспорт данных</span>
-                  <span className="text-xs text-zinc-500 font-light">Сохранить историю в .json</span>
+                  <span className="font-medium text-sm text-zinc-200">Резервная копия</span>
+                  <span className="text-xs text-zinc-500 font-light">Скачать историю смен на устройство</span>
                 </div>
               </div>
               <FileCode size={18} className="text-zinc-600" />
@@ -229,8 +226,8 @@ export default function Settings({
                   <Upload size={18} className="text-zinc-300" strokeWidth={2} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-medium text-sm text-zinc-200">Импорт данных</span>
-                  <span className="text-xs text-zinc-500 font-light">Загрузить из бэкапа</span>
+                  <span className="font-medium text-sm text-zinc-200">Восстановить данные</span>
+                  <span className="text-xs text-zinc-500 font-light">Загрузить смены из сохраненного файла</span>
                 </div>
               </div>
               <FileCode size={18} className="text-zinc-600" />
@@ -249,6 +246,15 @@ export default function Settings({
               </div>
             </button>
 
+          </div>
+        </div>
+
+        <div className="mt-6 pb-6 flex justify-center px-4">
+          <div className="flex items-center gap-2 bg-zinc-900/40 px-4 py-2 rounded-full border border-white/[0.03]">
+            <ShieldCheck size={14} className="text-zinc-500 shrink-0" />
+            <span className="text-[10px] text-zinc-500 font-light tracking-wider">
+              Все данные хранятся только на вашем устройстве
+            </span>
           </div>
         </div>
 

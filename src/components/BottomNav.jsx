@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, History as HistoryIcon, Settings as SettingsIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from '../utils';
+import { cn } from '../utils/utils';
 
 export default function BottomNav({ activeTab, setActiveTab }) {
   const tabs = [
@@ -11,10 +11,8 @@ export default function BottomNav({ activeTab, setActiveTab }) {
   ];
 
   return (
-    // Поднимаем обертку на fixed bottom-5, чтобы она парила над системной полоской айфона без черных блоков
     <div className="fixed bottom-5 left-0 w-full z-50 flex justify-center pointer-events-none">
-      
-      {/* Плавающая премиальная капсула */}
+ 
       <nav className="pointer-events-auto bg-[#121214]/85 backdrop-blur-2xl border border-white/10 p-1.5 rounded-full flex items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)]">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -28,7 +26,6 @@ export default function BottomNav({ activeTab, setActiveTab }) {
                 isActive ? "px-5 py-3.5 text-white" : "px-4 py-3.5 text-gray-500 hover:text-gray-300 hover:bg-white/5"
               )}
             >
-              {/* Анимированный ползунок фона (магия Framer Motion) */}
               {isActive && (
                 <motion.div
                   layoutId="active-nav-pill"
@@ -42,7 +39,6 @@ export default function BottomNav({ activeTab, setActiveTab }) {
                 className={cn("relative z-10 transition-colors duration-300", isActive && "text-indigo-400")} 
               />
               
-              {/* Текст выезжает только у активного таба */}
               <div className={cn(
                 "relative z-10 overflow-hidden transition-all duration-300 ease-out flex items-center", 
                 isActive ? "max-w-[80px] opacity-100 ml-2.5" : "max-w-0 opacity-0 ml-0"

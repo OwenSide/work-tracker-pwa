@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useIndexedDB } from './db';
-import { getShiftDetails } from './salary'; 
-import Dashboard from './components/Dashboard';
-import History from './components/History';
-import Settings from './components/Settings';
+import { useIndexedDB } from './services/db';
+import { getShiftDetails } from './utils/salary'; 
+import Dashboard from './pages/Dashboard';
+import History from './pages/History';
+import Settings from './pages/Settings';
 import BottomNav from './components/BottomNav';
 
 export default function App() {
@@ -113,10 +113,8 @@ export default function App() {
   }
 
   return (
-    // Заменили фон на #030303 и добавили отступ pt-[max(1.5rem,env(safe-area-inset-top))] для iOS
     <div className="h-[100dvh] w-full bg-[#030303] text-gray-100 flex flex-col font-sans overflow-hidden pt-[max(1.5rem,env(safe-area-inset-top))]">
-      
-      {/* Сделали градиент от очень легкого белого свечения в центре к глубокому черному #030303 по краям */}
+
       <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.02] via-[#030303] to-[#030303]">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.2 }} className="h-full w-full absolute inset-0">
