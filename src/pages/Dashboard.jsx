@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Square, Pause, Coffee, Gift, Flame, Sun, Moon } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Square, Pause, Coffee, Gift, Flame, Sun, Moon, ChevronsRight } from 'lucide-react';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import ProgressCircle from '../components/ProgressCircle';
 import { getShiftDetails } from '../utils/salary';
 import { cn } from '../utils/utils';
@@ -8,6 +8,10 @@ import { cn } from '../utils/utils';
 export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
   const [shiftData, setShiftData] = useState({ earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0 });
   const [isHolidaySelection, setIsHolidaySelection] = useState(false);
+  
+  // Рефы и контроллеры для Slide-to-Stop
+  const trackRef = useRef(null);
+  const controls = useAnimation();
 
   useEffect(() => {
     if (!activeShift) {
@@ -35,6 +39,24 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
     return { h, m, s };
   };
 
+  const handleDragEnd = async (e, info) => {
+    const trackWidth = trackRef.current?.offsetWidth || 250;
+    const sliderWidth = 60; 
+    // Если сдвинули больше чем на 65% ширины трека — завершаем смену
+    const threshold = (trackWidth - sliderWidth) * 0.65; 
+
+    if (info.offset.x >= threshold) {
+      // Плавно докатываем ползунок до конца для красоты
+      await controls.start({ x: trackWidth - sliderWidth - 12, transition: { duration: 0.2 } });
+      stopShift();
+      // Сбрасываем позицию для следующей смены
+      controls.set({ x: 0 });
+    } else {
+      // Если не дотянули — отпружиниваем обратно
+      controls.start({ x: 0, transition: { type: "spring", stiffness: 400, damping: 25 } });
+    }
+  };
+
   const { h, m, s } = formatTime(elapsed);
   const ot = formatTime(shiftData.overtimeMs);
   const nt = formatTime(shiftData.nightMs);
@@ -45,23 +67,17 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
 
   // Динамические цвета для СТЕКЛЯННОГО ФОНА центрального круга 
   let glassBg = "bg-gradient-to-br from-white/5 to-white/[0.01]";
-  let glassBorder = "border-white/10";
   
   if (shiftData.isHoliday) {
     glassBg = "bg-gradient-to-br from-amber-500/30 to-amber-900/10";
-    glassBorder = "border-amber-400/30";
   } else if (shiftData.isWeekend) {
     glassBg = "bg-gradient-to-br from-cyan-500/30 to-cyan-900/10";
-    glassBorder = "border-cyan-400/30";
   } else if (shiftData.isOvertime) {
     glassBg = "bg-gradient-to-br from-emerald-500/30 to-emerald-900/10";
-    glassBorder = "border-emerald-400/30";
   } else if (isNightTime && isRunning) {
     glassBg = "bg-gradient-to-br from-blue-500/30 to-blue-900/10";
-    glassBorder = "border-blue-400/30";
   } else if (isRunning) {
     glassBg = "bg-gradient-to-br from-indigo-500/30 to-indigo-900/10";
-    glassBorder = "border-indigo-400/30";
   }
 
   return (
@@ -120,8 +136,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative mb-14 mt-4 flex justify-center items-center w-80 h-80"
       >
-        
-        {/* ---  ВЫНЕСЕННЫЙ КОМПОНЕНТ АНИМАЦИИ --- */}
         <ProgressCircle 
           elapsed={elapsed} 
           shiftData={shiftData} 
@@ -129,16 +143,13 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
           isPaused={isPaused} 
         />
 
-        {/* СТЕКЛЯННАЯ ОСНОВА ЦЕНТРАЛЬНОГО КРУГА  */}
         <div className={cn(
           "absolute inset-0 rounded-full border border-white/5 flex flex-col items-center justify-center transition-all duration-700 overflow-hidden",
           "backdrop-blur-2xl shadow-[inset_0_0_50px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.8)]",
           glassBg
         )}>
-          {/* Блик сверху */}
           <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-60 rounded-t-full" />
           
-          {/* Контент таймера */}
           {isPaused ? (
             <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-amber-400/90 relative z-20">
               <Coffee size={48} className="mb-4 opacity-80" />
@@ -165,7 +176,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
                 </div>
               </div>
               
-              {/* Дополнительная инфа (переработка, ночь) */}
               <AnimatePresence>
                 {shiftData.overtimeMs > 0 && (
                   <motion.div 
@@ -202,46 +212,62 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         </div>
       </motion.div>
 
-      {/* КНОПКИ УПРАВЛЕНИЯ  */}
-      <div className="flex gap-4 z-20 w-full max-w-sm px-4">
+      {/* КНОПКИ УПРАВЛЕНИЯ */}
+      <div className="flex gap-3 z-20 w-full max-w-sm px-4">
         {!activeShift ? (
           <motion.button 
-            whileHover={{ scale: 1.02, transition: { duration: 0.3 } }} 
-            whileTap={{ scale: 0.96, transition: { type: "spring", stiffness: 400, damping: 25 } }}
+            whileHover={{ scale: 1.02 }} 
+            whileTap={{ scale: 0.96 }}
             onClick={() => startShift(isHolidaySelection)} 
-            className="flex-1 rounded-[32px] py-6 flex items-center justify-center transition-colors duration-500 group bg-gradient-to-b from-indigo-500 to-indigo-700 text-white border border-indigo-400/30 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2),0_10px_24px_-4px_rgba(99,102,241,0.6)] hover:shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.2),0_14px_32px_-4px_rgba(99,102,241,0.8)]"
+            className="flex-1 rounded-full py-6 flex items-center justify-center transition-colors duration-500 group bg-gradient-to-b from-indigo-500 to-indigo-700 text-white border border-indigo-400/30 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2),0_10px_24px_-4px_rgba(99,102,241,0.6)]"
           >
             <Play size={22} fill="currentColor" className="mr-3 group-hover:scale-110 transition-transform duration-500 drop-shadow-md" /> 
             <span className="font-bold text-lg tracking-widest uppercase drop-shadow-md">Старт</span>
           </motion.button>
         ) : (
           <>
+            {/* Кнопка Паузы (Слева) */}
             <motion.button 
-              whileHover={{ scale: 1.05, transition: { duration: 0.3 } }} 
-              whileTap={{ scale: 0.95, transition: { type: "spring", stiffness: 400, damping: 25 } }}
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }}
               onClick={togglePause} 
               className={cn(
-                "flex-1 rounded-[32px] py-6 flex items-center justify-center transition-all duration-500 border relative", 
+                "w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all duration-500 border relative overflow-hidden shrink-0", 
                 isPaused 
-                  ? "bg-gradient-to-b from-amber-400 to-amber-600 text-white border-amber-300/40 shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.2),0_10px_24px_-4px_rgba(245,158,11,0.6)]" 
+                  ? "bg-gradient-to-b from-amber-400 to-amber-600 text-white border-amber-300/40 shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),0_10px_24px_-4px_rgba(245,158,11,0.6)]" 
                   : "bg-zinc-900/90 text-gray-300 hover:text-white border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_8px_20px_rgba(0,0,0,0.5)]" 
               )}
-              style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }} 
             >
-              <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none rounded-t-[32px]" />
-              
-              {isPaused ? <Play size={22} fill="currentColor" className="drop-shadow-md relative z-10" /> : <Pause size={22} fill="currentColor" className="opacity-90 drop-shadow-sm relative z-10" />}
+              <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+              {isPaused 
+                ? <Play size={24} fill="currentColor" className="drop-shadow-md relative z-10 ml-1" /> 
+                : <Pause size={24} fill="currentColor" className="opacity-90 drop-shadow-sm relative z-10" />
+              }
             </motion.button>
             
-            <motion.button 
-              whileHover={{ scale: 1.02, transition: { duration: 0.3 } }} 
-              whileTap={{ scale: 0.96, transition: { type: "spring", stiffness: 400, damping: 25 } }}
-              onClick={stopShift} 
-              className="flex-[2] rounded-[32px] py-6 flex items-center justify-center transition-colors duration-500 group bg-gradient-to-b from-rose-500 to-rose-700 text-white border border-rose-400/30 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2),0_10px_24px_-4px_rgba(225,29,72,0.6)] hover:shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.2),0_14px_32px_-4px_rgba(225,29,72,0.8)]"
-            >
-              <Square size={20} fill="currentColor" className="mr-3 group-hover:scale-90 transition-transform duration-500 drop-shadow-md" /> 
-              <span className="font-bold text-lg tracking-widest uppercase drop-shadow-md">Стоп</span>
-            </motion.button>
+            {/* Слайдер "Сдвинь для Стопа" (Справа) */}
+            <div ref={trackRef} className="relative flex-1 h-[72px] bg-[#0a0a0a] rounded-full border border-white/5 flex items-center p-1.5 overflow-hidden shadow-[inset_0_3px_15px_rgba(0,0,0,0.8)]">
+              
+              {/* Текст внутри трека (смещен правее, чтобы ползунок его не закрывал) */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none pl-12 pr-2">
+                <span className="text-zinc-600 font-bold text-[11px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] opacity-80">
+                  ЗАВЕРШИТЬ
+                </span>
+              </div>
+              
+              {/* Сам ползунок */}
+              <motion.div 
+                drag="x"
+                dragConstraints={trackRef}
+                dragElastic={0.05}
+                onDragEnd={handleDragEnd}
+                animate={controls}
+                whileTap={{ scale: 0.95 }}
+                className="w-[60px] h-[60px] bg-gradient-to-b from-rose-500 to-rose-700 rounded-full flex items-center justify-center z-10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),0_4px_12px_rgba(225,29,72,0.6)] cursor-grab active:cursor-grabbing border border-rose-400/30"
+              >
+                <ChevronsRight size={24} className="text-white drop-shadow-md relative z-10" />
+              </motion.div>
+            </div>
           </>
         )}
       </div>
