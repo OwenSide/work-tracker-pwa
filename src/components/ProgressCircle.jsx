@@ -6,15 +6,13 @@ const CENTER = SIZE / 2;
 const RADIUS = 166;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-const WEEKDAY_STANDARD_MS = 8 * 60 * 60 * 1000;
-const WEEKEND_GOAL_MS = 6 * 60 * 60 * 1000;
+// 12 часов в миллисекундах для полного оборота циферблата
+const SHIFT_MAX_MS = 12 * 60 * 60 * 1000;
 
 export default function ProgressCircle({ elapsed, shiftData, isRunning, isPaused }) {
   
-  const isSpecialDay = shiftData.isWeekend || shiftData.isHoliday;
-  const currentStandardMs = isSpecialDay ? WEEKEND_GOAL_MS : WEEKDAY_STANDARD_MS;
-  
-  const currentProgress = Math.min(elapsed / currentStandardMs, 1);
+  // Прогресс теперь привязан к 12-часовому циферблату
+  const currentProgress = (elapsed % SHIFT_MAX_MS) / SHIFT_MAX_MS;
   const strokeDashoffset = isRunning || isPaused ? CIRCUMFERENCE - (currentProgress * CIRCUMFERENCE) : CIRCUMFERENCE;
 
   const angle = (currentProgress * 360) - 90;
@@ -34,10 +32,10 @@ export default function ProgressCircle({ elapsed, shiftData, isRunning, isPaused
     if (shiftData.isHoliday) return { grad: "url(#grad-holiday)", glow: "#f59e0b" };
     if (shiftData.isWeekend) return { grad: "url(#grad-weekend)", glow: "#06b6d4" };
     
-    if (!isSpecialDay) {
+    if (!shiftData.isWeekend && !shiftData.isHoliday) {
       if (shiftData.isOvertime) return { grad: "url(#grad-overdrive)", glow: "#10b981" };
-      if (elapsed >= 7.5 * 3600 * 1000) return { grad: "url(#grad-danger)", glow: "#ef4444" };
-      if (elapsed >= 7 * 3600 * 1000) return { grad: "url(#grad-warning)", glow: "#f59e0b" };
+      if (elapsed >= 10 * 3600 * 1000) return { grad: "url(#grad-danger)", glow: "#ef4444" };
+      if (elapsed >= 8 * 3600 * 1000) return { grad: "url(#grad-warning)", glow: "#f59e0b" };
     }
     
     return { grad: "url(#grad-standard)", glow: "#818cf8" };
@@ -130,10 +128,8 @@ export default function ProgressCircle({ elapsed, shiftData, isRunning, isPaused
               exit={{ opacity: 0 }}
               transition={{ rotate: { duration: 0.5, ease: "easeInOut" }, opacity: { duration: 0.3 } }}
             >
-              
               <circle cx={CENTER} cy={CENTER} r={RADIUS + 50} fill="none" stroke="none" />
 
-              {/* Отлетающие частицы */}
               {particles.map(p => (
                 <motion.circle
                   key={p.id}
@@ -151,15 +147,12 @@ export default function ProgressCircle({ elapsed, shiftData, isRunning, isPaused
                 />
               ))}
 
-              {/* Хвост кометы */}
               <path d={`M ${CENTER + RADIUS - 4} ${CENTER + 2} L ${CENTER + RADIUS + 4} ${CENTER + 2} L ${CENTER + RADIUS} ${CENTER - 45} Z`} fill="url(#neon-tail)" filter="url(#svg-blur-md)" />
               <path d={`M ${CENTER + RADIUS - 1.5} ${CENTER + 1} L ${CENTER + RADIUS + 1.5} ${CENTER + 1} L ${CENTER + RADIUS} ${CENTER - 25} Z`} fill="url(#neon-tail-core)" />
 
-              {/* Голова кометы: Свечение */}
               <circle cx={CENTER + RADIUS} cy={CENTER} r="16" fill={sparkGlow} opacity="0.3" filter="url(#svg-blur-lg)" />
               <circle cx={CENTER + RADIUS} cy={CENTER} r="7" fill={sparkGlow} opacity="0.7" filter="url(#svg-blur-md)" />
 
-              {/* ИДЕАЛЬНАЯ ИСКРА: нарисована через квадратичные кривые (Q) */}
               <g transform={`translate(${CENTER + RADIUS}, ${CENTER})`}>
                 <path 
                   d="M 0 -8 Q 0 0 8 0 Q 0 0 0 8 Q 0 0 -8 0 Q 0 0 0 -8 Z" 

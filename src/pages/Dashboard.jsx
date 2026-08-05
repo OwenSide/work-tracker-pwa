@@ -8,11 +8,9 @@ import { cn } from '../utils/utils';
 export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
   const [isHolidaySelection, setIsHolidaySelection] = useState(false);
   
-  // Рефы и контроллеры для Slide-to-Stop
   const trackRef = useRef(null);
   const controls = useAnimation();
 
-  // ОПТИМИЗАЦИЯ: Вычисляем данные на лету с помощью useMemo
   const shiftData = useMemo(() => {
     if (!activeShift) {
       return { earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0 };
@@ -43,9 +41,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
 
     if (info.offset.x >= threshold) {
       await controls.start({ x: trackWidth - sliderWidth - 12, transition: { duration: 0.2 } });
-      
       controls.set({ x: 0 });
-      
       stopShift();
     } else {
       controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
@@ -77,7 +73,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
   return (
     <div className="h-full flex flex-col items-center justify-center p-6 pb-24 relative overflow-hidden bg-[#030303]">
       
-      {/* Кнопка выбора праздника (x2) */}
       <AnimatePresence>
         {contractType === 'oprace' && !activeShift && (
           <motion.div 
@@ -102,7 +97,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         )}
       </AnimatePresence>
 
-      {/* Бейджики состояний сверху */}
       <div className="absolute top-10 w-full flex justify-center z-20 h-10">
         <AnimatePresence mode="wait">
           {shiftData.isHoliday && (
@@ -123,7 +117,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         </AnimatePresence>
       </div>
 
-      {/* ЦЕНТРАЛЬНЫЙ БЛОК ТАЙМЕРА - ОТКЛЮЧИЛИ СТАРТОВУЮ АНИМАЦИЮ */}
       <motion.div 
         initial={false} 
         animate={{ scale: 1, opacity: 1 }} 
@@ -141,8 +134,39 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
           "backdrop-blur-2xl shadow-[inset_0_0_50px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.8)]",
           glassBg
         )}>
-          <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-60 rounded-t-full" />
+          <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-60 rounded-t-full z-0" />
           
+          {/* 🧭 12-ЧАСОВОЙ ЦИФЕРБЛАТ */}
+          <div className="absolute inset-0 pointer-events-none z-10">
+            {[...Array(12)].map((_, i) => {
+              const hour = i === 0 ? 12 : i;
+              const isMain = i % 3 === 0;
+
+              return (
+                <div
+                  key={i}
+                  className="absolute inset-0 flex justify-center"
+                  style={{ transform: `rotate(${i * 30}deg)` }}
+                >
+                  <div className={cn(
+                    "absolute rounded-full transition-colors duration-500", 
+                    isMain ? "top-1.5 w-[3px] h-[10px] bg-white/40" : "top-2 w-1 h-1 bg-white/15"
+                  )} />
+                  
+                  <div 
+                    className={cn(
+                      "absolute font-bold tracking-wider flex items-center justify-center",
+                      isMain ? "top-5 text-[11px] text-white/60" : "top-5 text-[9px] text-white/20"
+                    )}
+                    style={{ transform: `rotate(${-i * 30}deg)` }} 
+                  >
+                    {hour}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           {isPaused ? (
             <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-amber-400/90 relative z-20">
               <Coffee size={48} className="mb-4 opacity-80" />
@@ -205,7 +229,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         </div>
       </motion.div>
 
-      {/* КНОПКИ УПРАВЛЕНИЯ */}
       <div className="flex gap-3 z-20 w-full max-w-sm px-4">
         {!activeShift ? (
           <motion.button 
@@ -219,7 +242,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
           </motion.button>
         ) : (
           <>
-            {/* Кнопка Паузы (Слева) */}
             <motion.button 
               whileHover={{ scale: 1.05 }} 
               whileTap={{ scale: 0.95 }}
@@ -238,7 +260,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
               }
             </motion.button>
             
-            {/* Слайдер "Сдвинь для Стопа" (Справа) */}
             <div ref={trackRef} className="relative flex-1 h-[72px] bg-[#0a0a0a] rounded-full border border-white/5 flex items-center p-1.5 overflow-hidden shadow-[inset_0_3px_15px_rgba(0,0,0,0.8)]">
               
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none pl-12 pr-2">
