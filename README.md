@@ -70,7 +70,7 @@ To run the project locally, you will need Node.js installed.
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/OwenSide/work-tracker-pwa.git
-   cd finanse-manager
+   cd work-tracker-pwa
    ```
 
 2. **Install dependencies:**
