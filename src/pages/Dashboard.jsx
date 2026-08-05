@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Play, Square, Pause, Coffee, Gift, Flame, Sun, Moon, ChevronsRight } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import ProgressCircle from '../components/ProgressCircle';
@@ -6,20 +6,19 @@ import { getShiftDetails } from '../utils/salary';
 import { cn } from '../utils/utils';
 
 export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
-  const [shiftData, setShiftData] = useState({ earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0 });
   const [isHolidaySelection, setIsHolidaySelection] = useState(false);
   
   // Рефы и контроллеры для Slide-to-Stop
   const trackRef = useRef(null);
   const controls = useAnimation();
 
-  useEffect(() => {
+  // ОПТИМИЗАЦИЯ: Вычисляем данные на лету с помощью useMemo
+  const shiftData = useMemo(() => {
     if (!activeShift) {
-      setShiftData({ earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0 });
-      return;
+      return { earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0 };
     }
 
-    const data = getShiftDetails({
+    return getShiftDetails({
       durationMs: elapsed,
       shiftStart: activeShift.startTime,
       endTime: Date.now(),
@@ -27,8 +26,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
       shiftType: 'standard',
       contractType, hourlyRate, monthlyRate, taxStatus
     });
-    
-    setShiftData(data);
   }, [elapsed, activeShift, contractType, hourlyRate, monthlyRate, taxStatus]);
 
   const formatTime = (ms) => {
@@ -42,18 +39,16 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
   const handleDragEnd = async (e, info) => {
     const trackWidth = trackRef.current?.offsetWidth || 250;
     const sliderWidth = 60; 
-    // Если сдвинули больше чем на 65% ширины трека — завершаем смену
     const threshold = (trackWidth - sliderWidth) * 0.65; 
 
     if (info.offset.x >= threshold) {
-      // Плавно докатываем ползунок до конца для красоты
       await controls.start({ x: trackWidth - sliderWidth - 12, transition: { duration: 0.2 } });
-      stopShift();
-      // Сбрасываем позицию для следующей смены
+      
       controls.set({ x: 0 });
+      
+      stopShift();
     } else {
-      // Если не дотянули — отпружиниваем обратно
-      controls.start({ x: 0, transition: { type: "spring", stiffness: 400, damping: 25 } });
+      controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
     }
   };
 
@@ -65,7 +60,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
   const isPaused = activeShift && activeShift.isPaused;
   const isNightTime = shiftData.nightMs > 0;
 
-  // Динамические цвета для СТЕКЛЯННОГО ФОНА центрального круга 
   let glassBg = "bg-gradient-to-br from-white/5 to-white/[0.01]";
   
   if (shiftData.isHoliday) {
@@ -129,11 +123,10 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         </AnimatePresence>
       </div>
 
-      {/* ЦЕНТРАЛЬНЫЙ БЛОК ТАЙМЕРА */}
+      {/* ЦЕНТРАЛЬНЫЙ БЛОК ТАЙМЕРА - ОТКЛЮЧИЛИ СТАРТОВУЮ АНИМАЦИЮ */}
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }} 
+        initial={false} 
         animate={{ scale: 1, opacity: 1 }} 
-        transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative mb-14 mt-4 flex justify-center items-center w-80 h-80"
       >
         <ProgressCircle 
@@ -248,20 +241,19 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
             {/* Слайдер "Сдвинь для Стопа" (Справа) */}
             <div ref={trackRef} className="relative flex-1 h-[72px] bg-[#0a0a0a] rounded-full border border-white/5 flex items-center p-1.5 overflow-hidden shadow-[inset_0_3px_15px_rgba(0,0,0,0.8)]">
               
-              {/* Текст внутри трека (смещен правее, чтобы ползунок его не закрывал) */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none pl-12 pr-2">
                 <span className="text-zinc-600 font-bold text-[11px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] opacity-80">
                   ЗАВЕРШИТЬ
                 </span>
               </div>
               
-              {/* Сам ползунок */}
               <motion.div 
                 drag="x"
-                dragConstraints={trackRef}
+                dragConstraints={{ left: 0, right: trackRef.current ? trackRef.current.offsetWidth - 72 : 250 }}
                 dragElastic={0.05}
                 onDragEnd={handleDragEnd}
                 animate={controls}
+                initial={{ x: 0 }} 
                 whileTap={{ scale: 0.95 }}
                 className="w-[60px] h-[60px] bg-gradient-to-b from-rose-500 to-rose-700 rounded-full flex items-center justify-center z-10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),0_4px_12px_rgba(225,29,72,0.6)] cursor-grab active:cursor-grabbing border border-rose-400/30"
               >
