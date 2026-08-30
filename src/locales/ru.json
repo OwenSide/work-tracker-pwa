@@ -1,0 +1,126 @@
+{
+  "settings": {
+    "title": "Настройки",
+    "language": "Язык интерфейса",
+    "contractType": "Тип договора",
+    "contractZlecenie": "Umowa Zlecenie",
+    "contractOprace": "Umowa o Pracę",
+    "monthlyBrutto": "Brutto в месяц",
+    "hourlyNetto": "Netto в час",
+    "taxStatus": "Налоговый статус",
+    "studentStatus": "Студент",
+    "under26": "до 26 лет",
+    "over26": "> 26 лет",
+    "taxWarning": "На Umowie o Pracę статус студента не дает освобождения от ZUS.",
+    "backup": "Резервное копирование",
+    "exportTitle": "Резервная копия",
+    "exportDesc": "Скачать историю смен на устройство",
+    "importTitle": "Восстановить данные",
+    "importDesc": "Загрузить смены из сохраненного файла",
+    "clearTitle": "Очистить данные",
+    "clearDesc": "Безвозвратное удаление",
+    "dataStoredLocally": "Все данные хранятся только на вашем устройстве",
+    "alerts": {
+      "noDataExport": "Нет данных для экспорта. Добавьте хотя бы одну смену.",
+      "invalidFormat": "Неверный формат файла.",
+      "mergeConfirm": "Объединить загруженные данные с текущей историей?\n\n(ОК - объединить. Отмена - заменить текущие данные)",
+      "deleteWarning": "ВНИМАНИЕ! Это действие удалит ваши текущие смены. Точно продолжить?",
+      "success": "Успешно!",
+      "readError": "Ошибка при чтении файла. Убедитесь, что это правильный .json бэкап.",
+      "clearConfirm1": "ВНИМАНИЕ! Вы уверены, что хотите очистить данные?",
+      "clearConfirm2": "Точно? Данные невозможно будет восстановить."
+    }
+  },
+  "dashboard": {
+    "holidayRate": "Праздничный тариф (x2)",
+    "weekendRate": "Выходной (x2)",
+    "overtimeRate": "Overtime x1.5",
+    "pause": "Пауза",
+    "earnedNetto": "Заработано (Netto)",
+    "shiftTime": "Время смены",
+    "nightHours": "Ночные",
+    "start": "Старт",
+    "finish": "Завершить"
+  },
+  "history": {
+    "tabs": {
+      "current": "Текущий",
+      "archive": "Архив"
+    },
+    "headers": {
+      "monthTotal": "За месяц",
+      "globalTotal": "Общий баланс",
+      "monthShifts": "Смены месяца"
+    },
+    "badges": {
+      "total": "Всего:",
+      "overtime": "Сверх:"
+    },
+    "manual": {
+      "title": "Ручное добавление",
+      "work": "Работа",
+      "from": "С",
+      "to": "По",
+      "pause": "Пауза",
+      "noteOptional": "Заметка (опционально)",
+      "holidayRate": "Праздничный тариф",
+      "add": "Добавить"
+    },
+    "edit": {
+      "title": "Редактирование",
+      "pause": "Пауза",
+      "note": "Заметка",
+      "save": "Сохранить",
+      "holidayRate": "Праздничный тариф"
+    },
+    "empty": {
+      "noRecords": "Нет записей",
+      "archiveEmpty": "Архив пуст"
+    },
+    "alerts": {
+      "deleteShift": "Точно удалить эту смену?",
+      "deleteArchive": "Точно удалить весь архив за {{month}}?",
+      "endDateError": "Дата окончания не может быть раньше даты начала!",
+      "noWorkDays": "В выбранном диапазоне нет рабочих дней (выбраны только выходные)."
+    },
+    "notes": {
+      "holiday": "🎁 Праздник (x2)",
+      "vacation": "🌴 Отпуск (100%)",
+      "sickLeave": "💊 Больничный L4 (80%)"
+    },
+    "currentMonth": "Текущий месяц",
+    "time": {
+      "h": "ч",
+      "m": "м"
+    }
+  },
+  "nav": {
+    "timer": "Таймер",
+    "history": "История",
+    "settings": "Настройки"
+  },
+  "pdf": {
+    "titleOprace": "Отчет о рабочем времени (Umowa o Pracę)",
+    "titleZlecenie": "Отчет о рабочем времени (Umowa Zlecenie)",
+    "date": "Дата",
+    "shiftType": "Тип смены",
+    "start": "Начало",
+    "end": "Конец",
+    "hours": "Часы",
+    "overtime": "Переработка",
+    "notes": "Заметки",
+    "typeWork": "Работа",
+    "typeVacation": "Отпуск",
+    "typeSick": "Больничный",
+    "typeHoliday": "Праздник",
+    "break": "Перерыв",
+    "workHours": "Часы работы",
+    "minutes": "мин",
+    "report": "Отчет",
+    "close": "✖ Закрыть документ",
+    "month": "Месяц",
+    "totalHours": "Итого часов работы:",
+    "ofWhichOvertime": "Из них переработки:",
+    "popupWarning": "Пожалуйста, разрешите всплывающие окна для этого сайта, чтобы сгенерировать PDF."
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "contractType": "Contract Type",
+    "contractZlecenie": "Umowa Zlecenie",
+    "contractOprace": "Umowa o Pracę",
+    "monthlyBrutto": "Monthly Brutto",
+    "hourlyNetto": "Hourly Netto",
+    "taxStatus": "Tax Status",
+    "studentStatus": "Student",
+    "under26": "under 26",
+    "over26": "> 26 years",
+    "taxWarning": "On Umowa o Pracę, student status does not exempt from ZUS.",
+    "backup": "Backup & Restore",
+    "exportTitle": "Export Data",
+    "exportDesc": "Download shift history to device",
+    "importTitle": "Restore Data",
+    "importDesc": "Load shifts from a saved file",
+    "clearTitle": "Clear Data",
+    "clearDesc": "Irreversible deletion",
+    "dataStoredLocally": "All data is stored locally on your device",
+    "alerts": {
+      "noDataExport": "No data to export. Add at least one shift.",
+      "invalidFormat": "Invalid file format.",
+      "mergeConfirm": "Merge imported data with current history?\n\n(OK - merge. Cancel - replace current data)",
+      "deleteWarning": "WARNING! This action will delete your current shifts. Continue?",
+      "success": "Success!",
+      "readError": "Error reading file. Ensure it is a valid .json backup.",
+      "clearConfirm1": "WARNING! Are you sure you want to clear the data?",
+      "clearConfirm2": "Are you absolutely sure? Data cannot be recovered."
+    }
+  },
+  "dashboard": {
+    "holidayRate": "Holiday Rate (x2)",
+    "weekendRate": "Weekend Rate (x2)",
+    "overtimeRate": "Overtime x1.5",
+    "pause": "Pause",
+    "earnedNetto": "Earned (Netto)",
+    "shiftTime": "Shift Time",
+    "nightHours": "Night",
+    "start": "Start",
+    "finish": "Finish"
+  },
+  "history": {
+    "tabs": {
+      "current": "Current",
+      "archive": "Archive"
+    },
+    "headers": {
+      "monthTotal": "This Month",
+      "globalTotal": "Global Balance",
+      "monthShifts": "Month Shifts"
+    },
+    "badges": {
+      "total": "Total:",
+      "overtime": "Overtime:"
+    },
+    "manual": {
+      "title": "Manual Entry",
+      "work": "Work",
+      "from": "From",
+      "to": "To",
+      "pause": "Pause",
+      "noteOptional": "Note (optional)",
+      "holidayRate": "Holiday Rate",
+      "add": "Add"
+    },
+    "edit": {
+      "title": "Edit Shift",
+      "pause": "Pause",
+      "note": "Note",
+      "save": "Save",
+      "holidayRate": "Holiday Rate"
+    },
+    "empty": {
+      "noRecords": "No records",
+      "archiveEmpty": "Archive is empty"
+    },
+    "alerts": {
+      "deleteShift": "Are you sure you want to delete this shift?",
+      "deleteArchive": "Are you sure you want to delete the entire archive for {{month}}?",
+      "endDateError": "End date cannot be earlier than start date!",
+      "noWorkDays": "No work days in the selected range (only weekends selected)."
+    },
+    "notes": {
+      "holiday": "🎁 Holiday (x2)",
+      "vacation": "🌴 Vacation (100%)",
+      "sickLeave": "💊 Sick Leave L4 (80%)"
+    },
+    "currentMonth": "Current Month",
+    "time": {
+      "h": "h",
+      "m": "m"
+    }
+  },
+  "nav": {
+    "timer": "Timer",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "pdf": {
+    "titleOprace": "Working Time Report (Umowa o Pracę)",
+    "titleZlecenie": "Working Time Report (Umowa Zlecenie)",
+    "date": "Date",
+    "shiftType": "Shift Type",
+    "start": "Start",
+    "end": "End",
+    "hours": "Hours",
+    "overtime": "Overtime",
+    "notes": "Notes",
+    "typeWork": "Work",
+    "typeVacation": "Vacation",
+    "typeSick": "Sick Leave",
+    "typeHoliday": "Holiday",
+    "break": "Break",
+    "workHours": "Work Hours",
+    "minutes": "min",
+    "report": "Report",
+    "close": "✖ Close Document",
+    "month": "Month",
+    "totalHours": "Total Work Hours:",
+    "ofWhichOvertime": "Of which overtime:",
+    "popupWarning": "Please allow pop-ups for this site to generate the PDF."
+  }
+}

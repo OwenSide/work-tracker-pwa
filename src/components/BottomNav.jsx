@@ -1,13 +1,16 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Clock, History as HistoryIcon, Settings as SettingsIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../utils/utils';
 
 export default function BottomNav({ activeTab, setActiveTab }) {
+  const { t } = useTranslation();
+
   const tabs = [
-    { id: 'dashboard', icon: Clock, label: 'Таймер' },
-    { id: 'history', icon: HistoryIcon, label: 'История' },
-    { id: 'settings', icon: SettingsIcon, label: 'Настройки' }
+    { id: 'dashboard', icon: Clock, label: t('nav.timer') },
+    { id: 'history', icon: HistoryIcon, label: t('nav.history') },
+    { id: 'settings', icon: SettingsIcon, label: t('nav.settings') }
   ];
 
   return (
@@ -23,7 +26,7 @@ export default function BottomNav({ activeTab, setActiveTab }) {
               onClick={() => setActiveTab(tab.id)} 
               className={cn(
                 "relative flex items-center justify-center rounded-full transition-all duration-300 ease-out", 
-                isActive ? "px-5 py-3.5 text-white" : "px-4 py-3.5 text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                isActive ? "px-5 py-3.5 text-white" : "px-4 py-3.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
               )}
             >
               {isActive && (
@@ -41,7 +44,7 @@ export default function BottomNav({ activeTab, setActiveTab }) {
               
               <div className={cn(
                 "relative z-10 overflow-hidden transition-all duration-300 ease-out flex items-center", 
-                isActive ? "max-w-[80px] opacity-100 ml-2.5" : "max-w-0 opacity-0 ml-0"
+                isActive ? "max-w-[110px] opacity-100 ml-2.5" : "max-w-0 opacity-0 ml-0"
               )}>
                 <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
                   {tab.label}

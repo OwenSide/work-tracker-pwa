@@ -1,4 +1,5 @@
 import { getShiftDetails } from '../utils/salary';
+import i18n from '../i18n'; // Импортируем i18n напрямую!
 
 // Вспомогательная функция для красивого формата времени (ЧЧ:ММ)
 const formatPrintTime = (ms) => {
@@ -9,8 +10,11 @@ const formatPrintTime = (ms) => {
 };
 
 export function generatePDFReport({ monthData, contractType, hourlyRate, monthlyRate, taxStatus }) {
+  const t = i18n.t.bind(i18n); // Получаем функцию перевода
+  const lng = i18n.language || 'ru-RU'; // Получаем текущий язык для дат
+
   const isOprace = contractType === 'oprace';
-  const title = isOprace ? 'Отчет о рабочем времени (Umowa o Pracę)' : 'Отчет о рабочем времени (Umowa Zlecenie)';
+  const title = isOprace ? t('pdf.titleOprace') : t('pdf.titleZlecenie');
   
   // Сортируем смены от начала месяца к концу
   const sortedShifts = [...monthData.shifts].sort((a, b) => a.startTime - b.startTime);
@@ -21,26 +25,26 @@ export function generatePDFReport({ monthData, contractType, hourlyRate, monthly
   if (isOprace) {
     tableHeaders = `
       <tr>
-        <th width="10%">Дата</th>
-        <th width="15%">Тип смены</th>
-        <th width="10%">Начало</th>
-        <th width="10%">Конец</th>
-        <th width="10%">Часы</th>
-        <th width="15%">Переработка</th>
-        <th width="30%">Заметки</th>
+        <th width="10%">${t('pdf.date')}</th>
+        <th width="15%">${t('pdf.shiftType')}</th>
+        <th width="10%">${t('pdf.start')}</th>
+        <th width="10%">${t('pdf.end')}</th>
+        <th width="10%">${t('pdf.hours')}</th>
+        <th width="15%">${t('pdf.overtime')}</th>
+        <th width="30%">${t('pdf.notes')}</th>
       </tr>
     `;
     tableRows = sortedShifts.map(shift => {
       const d = new Date(shift.startTime);
-      const dateStr = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const dateStr = d.toLocaleDateString(lng, { day: '2-digit', month: '2-digit', year: 'numeric' });
       
-      let typeStr = 'Работа';
-      if (shift.type === 'urlop') typeStr = 'Отпуск';
-      if (shift.type === 'l4') typeStr = 'Больничный';
-      if (shift.isHoliday) typeStr = 'Праздник';
+      let typeStr = t('pdf.typeWork');
+      if (shift.type === 'urlop') typeStr = t('pdf.typeVacation');
+      if (shift.type === 'l4') typeStr = t('pdf.typeSick');
+      if (shift.isHoliday) typeStr = t('pdf.typeHoliday');
 
-      const startTime = shift.type === 'urlop' || shift.type === 'l4' ? '-' : new Date(shift.startTime).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
-      const endTime = shift.type === 'urlop' || shift.type === 'l4' ? '-' : new Date(shift.endTime).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
+      const startTime = shift.type === 'urlop' || shift.type === 'l4' ? '-' : new Date(shift.startTime).toLocaleTimeString(lng, {hour: '2-digit', minute:'2-digit'});
+      const endTime = shift.type === 'urlop' || shift.type === 'l4' ? '-' : new Date(shift.endTime).toLocaleTimeString(lng, {hour: '2-digit', minute:'2-digit'});
       
       const { overtimeMs } = getShiftDetails({
         durationMs: shift.durationMs, shiftStart: shift.startTime, endTime: shift.endTime,
@@ -63,23 +67,23 @@ export function generatePDFReport({ monthData, contractType, hourlyRate, monthly
   } else {
     tableHeaders = `
       <tr>
-        <th width="15%">Дата</th>
-        <th width="15%">Начало</th>
-        <th width="15%">Конец</th>
-        <th width="15%">Перерыв</th>
-        <th width="15%">Часы работы</th>
-        <th width="25%">Заметки</th>
+        <th width="15%">${t('pdf.date')}</th>
+        <th width="15%">${t('pdf.start')}</th>
+        <th width="15%">${t('pdf.end')}</th>
+        <th width="15%">${t('pdf.break')}</th>
+        <th width="15%">${t('pdf.workHours')}</th>
+        <th width="25%">${t('pdf.notes')}</th>
       </tr>
     `;
     tableRows = sortedShifts.map(shift => {
       const d = new Date(shift.startTime);
-      const dateStr = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      const pauseMin = shift.pauseMs ? Math.round(shift.pauseMs / 60000) + ' мин' : '-';
+      const dateStr = d.toLocaleDateString(lng, { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const pauseMin = shift.pauseMs ? Math.round(shift.pauseMs / 60000) + ' ' + t('pdf.minutes') : '-';
       return `
         <tr>
           <td>${dateStr}</td>
-          <td>${new Date(shift.startTime).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</td>
-          <td>${new Date(shift.endTime).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</td>
+          <td>${new Date(shift.startTime).toLocaleTimeString(lng, {hour: '2-digit', minute:'2-digit'})}</td>
+          <td>${new Date(shift.endTime).toLocaleTimeString(lng, {hour: '2-digit', minute:'2-digit'})}</td>
           <td>${pauseMin}</td>
           <td><strong>${formatPrintTime(shift.durationMs)}</strong></td>
           <td class="notes">${shift.note || ''}</td>
@@ -92,7 +96,7 @@ export function generatePDFReport({ monthData, contractType, hourlyRate, monthly
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Отчет - ${monthData.label}</title>
+      <title>${t('pdf.report')} - ${monthData.label}</title>
       <meta charset="UTF-8">
       <style>
         body { 
@@ -102,7 +106,6 @@ export function generatePDFReport({ monthData, contractType, hourlyRate, monthly
           font-size: 13px; 
           background: #fff;
         }
-        /* --- Стили для кнопки закрытия --- */
         .no-print-btn {
           display: inline-block;
           margin-bottom: 25px;
@@ -119,7 +122,6 @@ export function generatePDFReport({ monthData, contractType, hourlyRate, monthly
         .no-print-btn:active {
           background-color: #dc2626;
         }
-        /* --------------------------------- */
         .header { 
           margin-bottom: 40px; 
           border-bottom: 2px solid #e5e7eb;
@@ -187,27 +189,25 @@ export function generatePDFReport({ monthData, contractType, hourlyRate, monthly
         @media print {
           body { padding: 0; background: transparent; }
           .summary { border: 1px solid #e5e7eb; background: transparent; }
-          /* --- Скрываем кнопку при печати и в PDF --- */
           .no-print-btn { display: none !important; }
           @page { margin: 1.5cm; }
         }
       </style>
     </head>
     <body>
-      <!-- Кнопка для закрытия окна -->
-      <button class="no-print-btn" onclick="window.close()">✖ Закрыть документ</button>
+      <button class="no-print-btn" onclick="window.close()">${t('pdf.close')}</button>
       
       <div class="header">
         <h1>${title}</h1>
-        <h2>Месяц: ${monthData.label}</h2>
+        <h2>${t('pdf.month')}: ${monthData.label}</h2>
       </div>
       <table>
         <thead>${tableHeaders}</thead>
         <tbody>${tableRows}</tbody>
       </table>
       <div class="summary">
-        <div class="summary-block">Итого часов работы: <strong>${formatPrintTime(monthData.totalDuration)}</strong></div>
-        ${isOprace && monthData.overtimeMs > 0 ? `<div class="summary-block">Из них переработки: <strong>${formatPrintTime(monthData.overtimeMs)}</strong></div>` : ''}
+        <div class="summary-block">${t('pdf.totalHours')} <strong>${formatPrintTime(monthData.totalDuration)}</strong></div>
+        ${isOprace && monthData.overtimeMs > 0 ? `<div class="summary-block">${t('pdf.ofWhichOvertime')} <strong>${formatPrintTime(monthData.overtimeMs)}</strong></div>` : ''}
       </div>
     </body>
     </html>
@@ -220,6 +220,6 @@ export function generatePDFReport({ monthData, contractType, hourlyRate, monthly
     printWindow.focus();
     setTimeout(() => { printWindow.print(); }, 250);
   } else {
-    alert("Пожалуйста, разрешите всплывающие окна для этого сайта, чтобы сгенерировать PDF.");
+    alert(t('pdf.popupWarning'));
   }
 }

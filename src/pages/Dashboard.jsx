@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next'; // Добавили импорт переводов
 import { Play, Square, Pause, Coffee, Gift, Flame, Sun, Moon, ChevronsRight } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import ProgressCircle from '../components/ProgressCircle';
@@ -6,6 +7,7 @@ import { getShiftDetails } from '../utils/salary';
 import { cn } from '../utils/utils';
 
 export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
+  const { t } = useTranslation(); // Инициализируем переводы
   const [isHolidaySelection, setIsHolidaySelection] = useState(false);
   
   const trackRef = useRef(null);
@@ -101,17 +103,17 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
         <AnimatePresence mode="wait">
           {shiftData.isHoliday && (
             <motion.div key="holiday" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full backdrop-blur-md bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[inset_0_1px_8px_rgba(245,158,11,0.3),0_10px_20px_rgba(0,0,0,0.5)]">
-              <Gift size={16}/> Праздничный тариф (x2)
+              <Gift size={16}/> {t('dashboard.holidayRate')}
             </motion.div>
           )}
           {!shiftData.isHoliday && shiftData.isWeekend && (
             <motion.div key="weekend" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full backdrop-blur-md bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[inset_0_1px_8px_rgba(6,182,212,0.3),0_10px_20px_rgba(0,0,0,0.5)]">
-              <Sun size={16}/> Выходной (x2)
+              <Sun size={16}/> {t('dashboard.weekendRate')}
             </motion.div>
           )}
           {!shiftData.isHoliday && !shiftData.isWeekend && shiftData.isOvertime && (
             <motion.div key="overtime" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full backdrop-blur-md bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[inset_0_1px_8px_rgba(16,185,129,0.3),0_10px_20px_rgba(0,0,0,0.5)]">
-              <Flame size={16} className="animate-pulse"/> Overtime x1.5
+              <Flame size={16} className="animate-pulse"/> {t('dashboard.overtimeRate')}
             </motion.div>
           )}
         </AnimatePresence>
@@ -170,12 +172,12 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
           {isPaused ? (
             <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-amber-400/90 relative z-20">
               <Coffee size={48} className="mb-4 opacity-80" />
-              <span className="text-2xl font-bold tracking-widest uppercase text-shadow-sm">Пауза</span>
+              <span className="text-2xl font-bold tracking-widest uppercase text-shadow-sm">{t('dashboard.pause')}</span>
             </motion.div>
           ) : (
             <div className="flex flex-col items-center justify-center w-full mt-2 relative z-20">
               <div className="flex flex-col items-center mb-4">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5 opacity-80">Заработано (Netto)</span>
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5 opacity-80">{t('dashboard.earnedNetto')}</span>
                 <div className={cn("text-6xl font-black flex items-center tracking-tighter transition-colors duration-500", shiftData.isHoliday ? "text-amber-300" : shiftData.isWeekend ? "text-cyan-300" : "text-emerald-300")}>
                   <span className="mr-2 opacity-60 text-3xl font-bold">{currency}</span>
                   {shiftData.earned.toFixed(2)}
@@ -183,7 +185,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
               </div>
 
               <div className="flex flex-col items-center">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 opacity-80">Время смены</span>
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 opacity-80">{t('dashboard.shiftTime')}</span>
                 <div className="flex items-baseline space-x-1 tabular-nums tracking-tight mb-1 text-white/90">
                   <span className="text-4xl font-bold">{h}</span>
                   <span className="text-2xl pb-0.5 opacity-50">:</span>
@@ -219,7 +221,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
                   >
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest bg-black/20 backdrop-blur-md border-blue-500/30 text-blue-300">
                       <Moon size={12} />
-                      <span className="tabular-nums">Ночные: {nt.h}:{nt.m}:{nt.s}</span>
+                      <span className="tabular-nums">{t('dashboard.nightHours')}: {nt.h}:{nt.m}:{nt.s}</span>
                     </div>
                   </motion.div>
                 )}
@@ -238,7 +240,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
             className="flex-1 rounded-full py-6 flex items-center justify-center transition-colors duration-500 group bg-gradient-to-b from-indigo-500 to-indigo-700 text-white border border-indigo-400/30 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2),0_10px_24px_-4px_rgba(99,102,241,0.6)]"
           >
             <Play size={22} fill="currentColor" className="mr-3 group-hover:scale-110 transition-transform duration-500 drop-shadow-md" /> 
-            <span className="font-bold text-lg tracking-widest uppercase drop-shadow-md">Старт</span>
+            <span className="font-bold text-lg tracking-widest uppercase drop-shadow-md">{t('dashboard.start')}</span>
           </motion.button>
         ) : (
           <>
@@ -264,7 +266,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
               
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none pl-12 pr-2">
                 <span className="text-zinc-600 font-bold text-[11px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] opacity-80">
-                  ЗАВЕРШИТЬ
+                  {t('dashboard.finish')}
                 </span>
               </div>
               

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame, Sun, Briefcase, Pill, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getShiftDetails } from '../utils/salary';
@@ -6,6 +7,7 @@ import { generatePDFReport } from '../utils/pdfGenerator';
 import { cn } from '../utils/utils';
 
 export default function History({ shifts, setShifts, hourlyRate, currency, contractType, monthlyRate, taxStatus }) {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState('current');
   const [expandedArchive, setExpandedArchive] = useState(null);
   
@@ -33,16 +35,18 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const totalSeconds = Math.floor(Math.max(0, Number(ms) || 0) / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    return `${hours}ч ${minutes}м`;
+    return `${hours}${t('history.time.h')} ${minutes}${t('history.time.m')}`;
   };
 
   const handleDeleteShift = (id) => {
-    if (window.confirm('Точно удалить эту смену?')) setShifts(shifts.filter(shift => shift.id !== id));
+    if (window.confirm(t('history.alerts.deleteShift'))) {
+      setShifts(shifts.filter(shift => shift.id !== id));
+    }
   };
 
   const handleDeleteMonth = (e, monthId, monthLabel) => {
     e.stopPropagation();
-    if (window.confirm(`Точно удалить весь архив за ${monthLabel}?`)) {
+    if (window.confirm(t('history.alerts.deleteArchive', { month: monthLabel }))) {
       const [year, month] = monthId.split('-').map(Number);
       setShifts(shifts.filter(shift => {
         const d = new Date(shift.startTime);
@@ -65,13 +69,11 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const isHol = shift.isHoliday === true || (shift.note && typeof shift.note === 'string' && shift.note.includes('Праздник'));
     setEditHoliday(isHol);
     
+    // Универсальная очистка заметки от системных префиксов (любого языка) по эмодзи
     let cleanNote = shift.note || '';
-    if (cleanNote.includes('🎁 Праздник (x2) | ')) cleanNote = cleanNote.replace('🎁 Праздник (x2) | ', '');
-    else if (cleanNote.includes('🎁 Праздник (x2)')) cleanNote = cleanNote.replace('🎁 Праздник (x2)', '');
-    if (cleanNote.includes('🌴 Отпуск (100%) | ')) cleanNote = cleanNote.replace('🌴 Отпуск (100%) | ', '');
-    if (cleanNote.includes('💊 Больничный L4 (80%) | ')) cleanNote = cleanNote.replace('💊 Больничный L4 (80%) | ', '');
+    cleanNote = cleanNote.replace(/^(🎁|🌴|💊)[^|]*(\|\s)?/, '').trim();
     
-    setEditNote(cleanNote.trim());
+    setEditNote(cleanNote);
     setEditingShiftId(shift.id);
   };
 
@@ -95,9 +97,9 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     });
     
     let finalNote = editNote.trim();
-    if (type === 'urlop') finalNote = finalNote ? `🌴 Отпуск (100%) | ${finalNote}` : '🌴 Отпуск (100%)';
-    else if (type === 'l4') finalNote = finalNote ? `💊 Больничный L4 (80%) | ${finalNote}` : '💊 Больничный L4 (80%)';
-    else if (contractType === 'oprace' && editHoliday) finalNote = finalNote ? `🎁 Праздник (x2) | ${finalNote}` : '🎁 Праздник (x2)';
+    if (type === 'urlop') finalNote = finalNote ? `${t('history.notes.vacation')} | ${finalNote}` : t('history.notes.vacation');
+    else if (type === 'l4') finalNote = finalNote ? `${t('history.notes.sickLeave')} | ${finalNote}` : t('history.notes.sickLeave');
+    else if (contractType === 'oprace' && editHoliday) finalNote = finalNote ? `${t('history.notes.holiday')} | ${finalNote}` : t('history.notes.holiday');
 
     const updatedShifts = shifts.map(shift => shift.id === editingShiftId ? { ...shift, startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note: finalNote, isHoliday: editHoliday } : shift)
       .sort((a, b) => b.startTime - a.startTime);
@@ -116,11 +118,11 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       let currentDate = new Date(manualDate);
       const endDate = new Date(endDateStr);
 
-      if (endDate < currentDate) return alert('Дата окончания не может быть раньше даты начала!');
+      if (endDate < currentDate) return alert(t('history.alerts.endDateError'));
 
       const baseNote = shiftType === 'urlop' 
-        ? (finalNote ? `🌴 Отпуск (100%) | ${finalNote}` : '🌴 Отпуск (100%)') 
-        : (finalNote ? `💊 Больничный L4 (80%) | ${finalNote}` : '💊 Больничный L4 (80%)');
+        ? (finalNote ? `${t('history.notes.vacation')} | ${finalNote}` : t('history.notes.vacation')) 
+        : (finalNote ? `${t('history.notes.sickLeave')} | ${finalNote}` : t('history.notes.sickLeave'));
 
       while (currentDate <= endDate) {
         const dayOfWeek = currentDate.getDay();
@@ -157,14 +159,14 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       });
       
       if (contractType === 'oprace' && manualHoliday && shiftType === 'standard') {
-        finalNote = finalNote ? `🎁 Праздник (x2) | ${finalNote}` : '🎁 Праздник (x2)';
+        finalNote = finalNote ? `${t('history.notes.holiday')} | ${finalNote}` : t('history.notes.holiday');
       }
 
       newShifts.push({ id: Date.now(), startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note: finalNote, isHoliday: manualHoliday, type: shiftType });
     }
 
     if (newShifts.length > 0) setShifts([...newShifts, ...shifts].sort((a, b) => b.startTime - a.startTime));
-    else alert('В выбранном диапазоне нет рабочих дней (выбраны только выходные).');
+    else alert(t('history.alerts.noWorkDays'));
     
     setIsManualEntryOpen(false);
     setManualDate(''); setManualEndDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote(''); setManualHoliday(false); setShiftType('standard');
@@ -181,7 +183,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       
       if (!groups[key]) {
-        let monthName = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+        // Динамический перевод названия месяца в зависимости от выбранного языка
+        let monthName = d.toLocaleDateString(i18n.language || 'ru-RU', { month: 'long', year: 'numeric' });
         monthName = monthName.charAt(0).toUpperCase() + monthName.slice(1).replace(' г.', '');
         groups[key] = { id: key, label: monthName, sortValue: d.getTime(), shifts: [], earned: 0, totalDuration: 0, overtimeMs: 0 };
       }
@@ -207,18 +210,18 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       gStats.totalDuration += safeDuration;
     });
 
-    const current = groups[currentKey] || { shifts: [], label: 'Текущий месяц', earned: 0, totalDuration: 0, overtimeMs: 0 }; 
+    const current = groups[currentKey] || { shifts: [], label: t('history.currentMonth'), earned: 0, totalDuration: 0, overtimeMs: 0 }; 
     const archives = Object.values(groups).filter(g => g.id !== currentKey).sort((a, b) => b.sortValue - a.sortValue);
     
     return { currentMonthData: current, archiveMonths: archives, globalStats: gStats };
-  }, [shifts, contractType, hourlyRate, monthlyRate, taxStatus]);
+  }, [shifts, contractType, hourlyRate, monthlyRate, taxStatus, i18n.language, t]);
 
   const renderShiftItem = (shift, hideDelete = false) => {
     if (editingShiftId === shift.id) {
       return (
         <div key={shift.id} className="bg-zinc-900 border border-zinc-700 p-4 rounded-2xl flex flex-col gap-3 shadow-lg my-2">
           <div className="flex justify-between items-center mb-1">
-            <h4 className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Редактирование</h4>
+            <h4 className="text-xs text-zinc-400 font-medium uppercase tracking-wider">{t('history.edit.title')}</h4>
             <button onClick={() => setEditingShiftId(null)} className="text-zinc-500 hover:text-white p-1"><X size={18} /></button>
           </div>
           
@@ -242,22 +245,22 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
           <div className="flex gap-2 flex-col sm:flex-row">
             <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 sm:w-1/3">
               <Coffee size={16} className="text-zinc-500 shrink-0" />
-              <input type="number" placeholder="Пауза" value={editBreak} onChange={(e) => setEditBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
+              <input type="number" placeholder={t('history.edit.pause')} value={editBreak} onChange={(e) => setEditBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
             </div>
             <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1">
               <MessageSquare size={16} className="text-zinc-500 shrink-0" />
-              <input type="text" placeholder="Заметка" value={editNote} onChange={(e) => setEditNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
+              <input type="text" placeholder={t('history.edit.note')} value={editNote} onChange={(e) => setEditNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
             </div>
           </div>
 
           {contractType === 'oprace' && (!shift.type || shift.type === 'standard') && (
             <button onClick={() => setEditHoliday(!editHoliday)} className={cn("w-full py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 border", editHoliday ? "bg-amber-500 text-black border-amber-500" : "bg-transparent text-zinc-400 border-zinc-700")}>
-              <Gift size={14} /> Праздничный тариф
+              <Gift size={14} /> {t('history.edit.holidayRate')}
             </button>
           )}
           
           <button onClick={handleSaveEdit} className="w-full bg-white hover:bg-zinc-200 text-black font-semibold py-2.5 rounded-xl text-sm mt-1">
-            Сохранить
+            {t('history.edit.save')}
           </button>
         </div>
       );
@@ -267,7 +270,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       <div key={shift.id} className="group relative flex flex-col py-3.5 px-4 bg-zinc-900/40 hover:bg-zinc-800/60 border border-white/5 rounded-2xl transition-colors">
         <div className="flex justify-between items-center mb-2">
           <span className="text-zinc-100 font-medium text-sm tracking-wide">
-            {new Date(shift.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' })}
+            {new Date(shift.startTime).toLocaleDateString(i18n.language || 'ru-RU', { day: 'numeric', month: 'long', weekday: 'short' })}
           </span>
           <div className="flex items-center gap-3">
             <span className="font-medium text-emerald-400 text-sm tracking-tight">
@@ -290,7 +293,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
               <span>{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
               {shift.pauseMs > 0 && (
                 <span className="ml-2 pl-2 border-l border-white/10 text-zinc-500 flex items-center gap-1">
-                  <Coffee size={10} /> {Math.round(shift.pauseMs / 60000)}м
+                  <Coffee size={10} /> {Math.round(shift.pauseMs / 60000)}{t('history.time.m')}
                 </span>
               )}
             </div>
@@ -323,7 +326,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
         <div className="relative z-10 flex justify-between items-center">
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">
-              {activeTab === 'current' ? 'За месяц' : 'Общий баланс'}
+              {activeTab === 'current' ? t('history.headers.monthTotal') : t('history.headers.globalTotal')}
             </span>
             <div className="text-3xl font-light text-white flex items-center tracking-tight">
               <span className="text-emerald-500 font-light mr-1.5 text-2xl">{currency}</span>
@@ -336,13 +339,13 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
           </div>
         </div>
 
-        {/* Информационные бейджи (Время и Переработки) */}
+        {/* Информационные бейджи */}
         <div className="relative z-10 mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
           
           <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-400 bg-black/40 border border-white/5 px-2.5 py-1.5 rounded-lg backdrop-blur-md whitespace-nowrap">
             <Clock size={12} className="text-zinc-500 shrink-0" />
             <span className="uppercase tracking-wider mt-0.5">
-              Всего: <span className="text-white font-mono ml-0.5">{formatTime(displayStats.totalDuration)}</span>
+              {t('history.badges.total')} <span className="text-white font-mono ml-0.5">{formatTime(displayStats.totalDuration)}</span>
             </span>
           </div>
 
@@ -350,7 +353,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
             <div className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg backdrop-blur-md whitespace-nowrap">
               <Flame size={12} className="shrink-0" />
               <span className="uppercase tracking-wider mt-0.5">
-                Сверх: <span className="font-mono ml-0.5">{formatTime(displayStats.overtimeMs)}</span>
+                {t('history.badges.overtime')} <span className="font-mono ml-0.5">{formatTime(displayStats.overtimeMs)}</span>
               </span>
             </div>
           )}
@@ -361,10 +364,10 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       {/* Компактные табы */}
       <div className="flex bg-zinc-900 p-1 rounded-xl mb-4 border border-white/5 shrink-0">
         <button onClick={() => setActiveTab('current')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5", activeTab === 'current' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300")}>
-          <Clock size={14} /> Текущий
+          <Clock size={14} /> {t('history.tabs.current')}
         </button>
         <button onClick={() => setActiveTab('archive')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5", activeTab === 'archive' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300")}>
-          <CalendarDays size={14} /> Архив
+          <CalendarDays size={14} /> {t('history.tabs.archive')}
         </button>
       </div>
 
@@ -373,7 +376,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
         {activeTab === 'current' && (
           <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex-1 min-h-0 flex flex-col">
             <div className="flex justify-between items-center mb-3 px-1 shrink-0">
-              <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wider">Смены месяца</h3>
+              <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wider">{t('history.headers.monthShifts')}</h3>
               <div className="flex gap-1.5">
                 <button 
                   onClick={() => generatePDFReport({ monthData: currentMonthData, contractType, hourlyRate, monthlyRate, taxStatus })} 
@@ -397,12 +400,12 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                     <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col gap-4">
                       
                       <div className="flex justify-between items-center mb-[-0.5rem]">
-                        <h4 className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Ручное добавление</h4>
+                        <h4 className="text-xs text-zinc-400 font-medium uppercase tracking-wider">{t('history.manual.title')}</h4>
                       </div>
 
                       {contractType === 'oprace' && (
                         <div className="flex bg-zinc-950 p-1 rounded-xl border border-white/5">
-                          <button onClick={() => setShiftType('standard')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'standard' ? "bg-zinc-800 text-white" : "text-zinc-500")}><Briefcase size={12}/> Работа</button>
+                          <button onClick={() => setShiftType('standard')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'standard' ? "bg-zinc-800 text-white" : "text-zinc-500")}><Briefcase size={12}/> {t('history.manual.work')}</button>
                           <button onClick={() => setShiftType('urlop')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'urlop' ? "bg-emerald-500/20 text-emerald-400" : "text-zinc-500")}><Sun size={12}/> Urlop</button>
                           <button onClick={() => setShiftType('l4')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'l4' ? "bg-rose-500/20 text-rose-400" : "text-zinc-500")}><Pill size={12}/> L4</button>
                         </div>
@@ -411,7 +414,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                       {shiftType !== 'standard' ? (
                         <div className="flex gap-2 items-center">
                           <div className="flex-1 flex flex-col gap-1">
-                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider pl-1">С</label>
+                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider pl-1">{t('history.manual.from')}</label>
                             <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
                               <CalendarDays size={14} className="text-zinc-500 shrink-0" />
                               <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
@@ -419,7 +422,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                           </div>
                           <ArrowRight size={14} className="text-zinc-600 mt-5 shrink-0" />
                           <div className="flex-1 flex flex-col gap-1">
-                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider pl-1">По</label>
+                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider pl-1">{t('history.manual.to')}</label>
                             <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3">
                               <CalendarDays size={14} className="text-zinc-500 shrink-0" />
                               <input type="date" value={manualEndDate} onChange={(e) => setManualEndDate(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm appearance-none" style={{colorScheme: 'dark'}} />
@@ -448,16 +451,16 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                           </div>
                           
                           <div className="flex gap-2 flex-col sm:flex-row">
-                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 sm:w-1/3"><Coffee size={14} className="text-zinc-500 shrink-0" /><input type="number" placeholder="Пауза" value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" /></div>
-                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1"><MessageSquare size={14} className="text-zinc-500 shrink-0" /><input type="text" placeholder="Заметка (опционально)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" /></div>
+                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 sm:w-1/3"><Coffee size={14} className="text-zinc-500 shrink-0" /><input type="number" placeholder={t('history.manual.pause')} value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" /></div>
+                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1"><MessageSquare size={14} className="text-zinc-500 shrink-0" /><input type="text" placeholder={t('history.manual.noteOptional')} value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" /></div>
                           </div>
                           {contractType === 'oprace' && (
-                            <button onClick={() => setManualHoliday(!manualHoliday)} className={cn("w-full py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 border mt-1", manualHoliday ? "bg-amber-500 text-black border-amber-500" : "bg-transparent text-zinc-400 border-zinc-800")}><Gift size={14} /> Праздничный тариф</button>
+                            <button onClick={() => setManualHoliday(!manualHoliday)} className={cn("w-full py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 border mt-1", manualHoliday ? "bg-amber-500 text-black border-amber-500" : "bg-transparent text-zinc-400 border-zinc-800")}><Gift size={14} /> {t('history.manual.holidayRate')}</button>
                           )}
                         </>
                       )}
                       
-                      <button onClick={handleAddManualShift} disabled={!manualDate || (shiftType === 'standard' && (!manualStartTime || !manualEndTime))} className="w-full bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-semibold py-3 rounded-xl transition-colors text-sm">Добавить</button>
+                      <button onClick={handleAddManualShift} disabled={!manualDate || (shiftType === 'standard' && (!manualStartTime || !manualEndTime))} className="w-full bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-semibold py-3 rounded-xl transition-colors text-sm">{t('history.manual.add')}</button>
                     </div>
                   </motion.div>
                 )}
@@ -465,7 +468,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
 
               <div className="flex flex-col gap-2">
                 {currentMonthData.shifts.length === 0 ? (
-                  <div className="py-10 flex flex-col items-center justify-center text-zinc-600 space-y-3"><HistoryIcon size={32} strokeWidth={1} /><p className="text-xs tracking-widest uppercase">Нет записей</p></div>
+                  <div className="py-10 flex flex-col items-center justify-center text-zinc-600 space-y-3"><HistoryIcon size={32} strokeWidth={1} /><p className="text-xs tracking-widest uppercase">{t('history.empty.noRecords')}</p></div>
                 ) : (currentMonthData.shifts.map(shift => renderShiftItem(shift, false)))}
               </div>
             </div>
@@ -476,7 +479,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
           <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex-1 min-h-0 flex flex-col">
             <div className="flex-1 overflow-y-auto pb-24 no-scrollbar flex flex-col gap-3">
               {archiveMonths.length === 0 ? (
-                <div className="py-10 flex flex-col items-center justify-center text-zinc-600 space-y-3"><CalendarDays size={32} strokeWidth={1} /><p className="text-xs tracking-widest uppercase">Архив пуст</p></div>
+                <div className="py-10 flex flex-col items-center justify-center text-zinc-600 space-y-3"><CalendarDays size={32} strokeWidth={1} /><p className="text-xs tracking-widest uppercase">{t('history.empty.archiveEmpty')}</p></div>
               ) : (
                 archiveMonths.map(month => (
                   <div key={month.id} className="bg-zinc-900/50 border border-white/5 rounded-2xl overflow-hidden">

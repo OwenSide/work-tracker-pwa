@@ -1,0 +1,126 @@
+{
+  "settings": {
+    "title": "Ustawienia",
+    "language": "Język",
+    "contractType": "Rodzaj umowy",
+    "contractZlecenie": "Umowa Zlecenie",
+    "contractOprace": "Umowa o Pracę",
+    "monthlyBrutto": "Brutto miesięcznie",
+    "hourlyNetto": "Netto na godzinę",
+    "taxStatus": "Status podatkowy",
+    "studentStatus": "Student",
+    "under26": "do 26 lat",
+    "over26": "> 26 lat",
+    "taxWarning": "Na Umowie o Pracę status studenta nie zwalnia z ZUS.",
+    "backup": "Kopia zapasowa",
+    "exportTitle": "Eksportuj dane",
+    "exportDesc": "Pobierz historię zmian na urządzenie",
+    "importTitle": "Przywróć dane",
+    "importDesc": "Wgraj zmiany z zapisanego pliku",
+    "clearTitle": "Wyczyść dane",
+    "clearDesc": "Nieodwracalne usunięcie",
+    "dataStoredLocally": "Wszystkie dane są przechowywane tylko na twoim urządzeniu",
+    "alerts": {
+      "noDataExport": "Brak danych do eksportu. Dodaj przynajmniej jedną zmianę.",
+      "invalidFormat": "Nieprawidłowy format pliku.",
+      "mergeConfirm": "Połączyć wgrane dane z obecną historią?\n\n(OK - połącz. Anuluj - zastąp obecne dane)",
+      "deleteWarning": "UWAGA! Ta akcja usunie twoje obecne zmiany. Na pewno kontynuować?",
+      "success": "Sukces!",
+      "readError": "Błąd podczas odczytu pliku. Upewnij się, że to prawidłowy plik .json.",
+      "clearConfirm1": "UWAGA! Jesteś pewien, że chcesz usunąć dane?",
+      "clearConfirm2": "Na pewno? Danych nie będzie można przywrócić."
+    }
+  },
+  "dashboard": {
+    "holidayRate": "Stawka świąteczna (x2)",
+    "weekendRate": "Dzień wolny (x2)",
+    "overtimeRate": "Nadgodziny x1.5",
+    "pause": "Pauza",
+    "earnedNetto": "Zarobiono (Netto)",
+    "shiftTime": "Czas zmiany",
+    "nightHours": "Nocne",
+    "start": "Start",
+    "finish": "Zakończ"
+  },
+  "history": {
+    "tabs": {
+      "current": "Bieżący",
+      "archive": "Archiwum"
+    },
+    "headers": {
+      "monthTotal": "W tym miesiącu",
+      "globalTotal": "Saldo ogólne",
+      "monthShifts": "Zmiany w miesiącu"
+    },
+    "badges": {
+      "total": "Razem:",
+      "overtime": "Nadgodziny:"
+    },
+    "manual": {
+      "title": "Dodawanie ręczne",
+      "work": "Praca",
+      "from": "Od",
+      "to": "Do",
+      "pause": "Przerwa",
+      "noteOptional": "Notatka (opcjonalnie)",
+      "holidayRate": "Stawka świąteczna",
+      "add": "Dodaj"
+    },
+    "edit": {
+      "title": "Edytuj zmianę",
+      "pause": "Przerwa",
+      "note": "Notatka",
+      "save": "Zapisz",
+      "holidayRate": "Stawka świąteczna"
+    },
+    "empty": {
+      "noRecords": "Brak wpisów",
+      "archiveEmpty": "Archiwum jest puste"
+    },
+    "alerts": {
+      "deleteShift": "Na pewno usunąć tę zmianę?",
+      "deleteArchive": "Na pewno usunąć całe archiwum za {{month}}?",
+      "endDateError": "Data końcowa nie może być wcześniejsza niż początkowa!",
+      "noWorkDays": "Brak dni roboczych w wybranym zakresie (tylko weekendy)."
+    },
+    "notes": {
+      "holiday": "🎁 Święto (x2)",
+      "vacation": "🌴 Urlop (100%)",
+      "sickLeave": "💊 Zwolnienie L4 (80%)"
+    },
+    "currentMonth": "Bieżący miesiąc",
+    "time": {
+      "h": "g",
+      "m": "m"
+    }
+  },
+  "nav": {
+    "timer": "Timer",
+    "history": "Historia",
+    "settings": "Ustawienia"
+  },
+  "pdf": {
+    "titleOprace": "Raport czasu pracy (Umowa o Pracę)",
+    "titleZlecenie": "Raport czasu pracy (Umowa Zlecenie)",
+    "date": "Data",
+    "shiftType": "Rodzaj zmiany",
+    "start": "Start",
+    "end": "Koniec",
+    "hours": "Godziny",
+    "overtime": "Nadgodziny",
+    "notes": "Notatki",
+    "typeWork": "Praca",
+    "typeVacation": "Urlop",
+    "typeSick": "L4",
+    "typeHoliday": "Święto",
+    "break": "Przerwa",
+    "workHours": "Godziny pracy",
+    "minutes": "min",
+    "report": "Raport",
+    "close": "✖ Zamknij dokument",
+    "month": "Miesiąc",
+    "totalHours": "Suma godzin pracy:",
+    "ofWhichOvertime": "W tym nadgodziny:",
+    "popupWarning": "Proszę zezwolić na wyskakujące okienka (pop-ups), aby wygenerować PDF."
+  }
+}

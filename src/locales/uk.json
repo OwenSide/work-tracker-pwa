@@ -1,0 +1,126 @@
+{
+  "settings": {
+    "title": "Налаштування",
+    "language": "Мова інтерфейсу",
+    "contractType": "Тип договору",
+    "contractZlecenie": "Umowa Zlecenie",
+    "contractOprace": "Umowa o Pracę",
+    "monthlyBrutto": "Brutto на місяць",
+    "hourlyNetto": "Netto за годину",
+    "taxStatus": "Податковий статус",
+    "studentStatus": "Студент",
+    "under26": "до 26 років",
+    "over26": "> 26 років",
+    "taxWarning": "На Umowie o Pracę статус студента не звільняє від ZUS.",
+    "backup": "Резервне копіювання",
+    "exportTitle": "Резервна копія",
+    "exportDesc": "Завантажити історію змін на пристрій",
+    "importTitle": "Відновити дані",
+    "importDesc": "Завантажити зміни зі збереженого файлу",
+    "clearTitle": "Очистити дані",
+    "clearDesc": "Безповоротне видалення",
+    "dataStoredLocally": "Всі дані зберігаються лише на вашому пристрої",
+    "alerts": {
+      "noDataExport": "Немає даних для експорту. Додайте хоча б одну зміну.",
+      "invalidFormat": "Невірний формат файлу.",
+      "mergeConfirm": "Об'єднати завантажені дані з поточною історією?\n\n(ОК - об'єднати. Скасувати - замінити поточні дані)",
+      "deleteWarning": "УВАГА! Ця дія видалить ваші поточні зміни. Точно продовжити?",
+      "success": "Успішно!",
+      "readError": "Помилка при читанні файлу. Переконайтеся, що це правильний .json файл.",
+      "clearConfirm1": "УВАГА! Ви впевнені, що хочете очистити дані?",
+      "clearConfirm2": "Точно? Дані неможливо буде відновити."
+    }
+  },
+  "dashboard": {
+    "holidayRate": "Святковий тариф (x2)",
+    "weekendRate": "Вихідний (x2)",
+    "overtimeRate": "Overtime x1.5",
+    "pause": "Пауза",
+    "earnedNetto": "Зароблено (Netto)",
+    "shiftTime": "Час зміни",
+    "nightHours": "Нічні",
+    "start": "Старт",
+    "finish": "Завершити"
+  },
+  "history": {
+    "tabs": {
+      "current": "Поточний",
+      "archive": "Архів"
+    },
+    "headers": {
+      "monthTotal": "За місяць",
+      "globalTotal": "Загальний баланс",
+      "monthShifts": "Зміни місяця"
+    },
+    "badges": {
+      "total": "Всього:",
+      "overtime": "Понаднорм:"
+    },
+    "manual": {
+      "title": "Ручне додавання",
+      "work": "Робота",
+      "from": "З",
+      "to": "По",
+      "pause": "Пауза",
+      "noteOptional": "Нотатка (необов'язково)",
+      "holidayRate": "Святковий тариф",
+      "add": "Додати"
+    },
+    "edit": {
+      "title": "Редагування",
+      "pause": "Пауза",
+      "note": "Нотатка",
+      "save": "Зберегти",
+      "holidayRate": "Святковий тариф"
+    },
+    "empty": {
+      "noRecords": "Немає записів",
+      "archiveEmpty": "Архів порожній"
+    },
+    "alerts": {
+      "deleteShift": "Точно видалити цю зміну?",
+      "deleteArchive": "Точно видалити весь архів за {{month}}?",
+      "endDateError": "Дата закінчення не може бути раніше дати початку!",
+      "noWorkDays": "У вибраному діапазоні немає робочих днів (обрані лише вихідні)."
+    },
+    "notes": {
+      "holiday": "🎁 Свято (x2)",
+      "vacation": "🌴 Відпустка (100%)",
+      "sickLeave": "💊 Лікарняний L4 (80%)"
+    },
+    "currentMonth": "Поточний місяць",
+    "time": {
+      "h": "г",
+      "m": "хв"
+    }
+  },
+  "nav": {
+    "timer": "Таймер",
+    "history": "Історія",
+    "settings": "Налаштування"
+  },
+  "pdf": {
+    "titleOprace": "Звіт про робочий час (Umowa o Pracę)",
+    "titleZlecenie": "Звіт про робочий час (Umowa Zlecenie)",
+    "date": "Дата",
+    "shiftType": "Тип зміни",
+    "start": "Початок",
+    "end": "Кінець",
+    "hours": "Години",
+    "overtime": "Понаднормові",
+    "notes": "Нотатки",
+    "typeWork": "Робота",
+    "typeVacation": "Відпустка",
+    "typeSick": "Лікарняний",
+    "typeHoliday": "Свято",
+    "break": "Перерва",
+    "workHours": "Години роботи",
+    "minutes": "хв",
+    "report": "Звіт",
+    "close": "✖ Закрити документ",
+    "month": "Місяць",
+    "totalHours": "Всього годин роботи:",
+    "ofWhichOvertime": "З них понаднормові:",
+    "popupWarning": "Будь ласка, дозвольте спливаючі вікна для цього сайту, щоб згенерувати PDF."
+  }
+}
