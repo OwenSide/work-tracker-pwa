@@ -130,36 +130,49 @@ export default function ProgressCircle({ elapsed, shiftData, isRunning, isPaused
             >
               <circle cx={CENTER} cy={CENTER} r={RADIUS + 50} fill="none" stroke="none" />
 
-              {particles.map(p => (
-                <motion.circle
-                  key={p.id}
-                  cx={CENTER + RADIUS}
-                  cy={CENTER}
-                  r={p.size}
-                  fill="#ffffff"
-                  animate={{
-                    cx: [CENTER + RADIUS, CENTER + RADIUS + p.xOffset],
-                    cy: [CENTER, CENTER + p.yOffset],
-                    opacity: [0, 0.9, 0],
-                    scale: [0, 1.2, 0.5]
-                  }}
-                  transition={{ duration: p.duration, repeat: Infinity, delay: p.delay, ease: "easeOut" }}
-                />
-              ))}
+              {/* === ИСКРЫ И ХВОСТ (Плавное затухание на паузе) === */}
+              <motion.g 
+                animate={{ opacity: isPaused ? 0 : 1 }} 
+                transition={{ duration: 0.4, ease: "easeInOut" }}
+              >
+                {particles.map(p => (
+                  <motion.circle
+                    key={p.id}
+                    cx={CENTER + RADIUS}
+                    cy={CENTER}
+                    r={p.size}
+                    fill="#ffffff"
+                    animate={{
+                      cx: [CENTER + RADIUS, CENTER + RADIUS + p.xOffset],
+                      cy: [CENTER, CENTER + p.yOffset],
+                      opacity: [0, 0.9, 0],
+                      scale: [0, 1.2, 0.5]
+                    }}
+                    transition={{ duration: p.duration, repeat: Infinity, delay: p.delay, ease: "easeOut" }}
+                  />
+                ))}
 
-              <path d={`M ${CENTER + RADIUS - 4} ${CENTER + 2} L ${CENTER + RADIUS + 4} ${CENTER + 2} L ${CENTER + RADIUS} ${CENTER - 45} Z`} fill="url(#neon-tail)" filter="url(#svg-blur-md)" />
-              <path d={`M ${CENTER + RADIUS - 1.5} ${CENTER + 1} L ${CENTER + RADIUS + 1.5} ${CENTER + 1} L ${CENTER + RADIUS} ${CENTER - 25} Z`} fill="url(#neon-tail-core)" />
+                <path d={`M ${CENTER + RADIUS - 4} ${CENTER + 2} L ${CENTER + RADIUS + 4} ${CENTER + 2} L ${CENTER + RADIUS} ${CENTER - 45} Z`} fill="url(#neon-tail)" filter="url(#svg-blur-md)" />
+                <path d={`M ${CENTER + RADIUS - 1.5} ${CENTER + 1} L ${CENTER + RADIUS + 1.5} ${CENTER + 1} L ${CENTER + RADIUS} ${CENTER - 25} Z`} fill="url(#neon-tail-core)" />
+              </motion.g>
 
+              {/* Свечение под звездочкой оставляем, чтобы было видно текущую позицию */}
               <circle cx={CENTER + RADIUS} cy={CENTER} r="16" fill={sparkGlow} opacity="0.3" filter="url(#svg-blur-lg)" />
               <circle cx={CENTER + RADIUS} cy={CENTER} r="7" fill={sparkGlow} opacity="0.7" filter="url(#svg-blur-md)" />
 
+              {/* УМНАЯ ЗВЕЗДОЧКА */}
               <g transform={`translate(${CENTER + RADIUS}, ${CENTER})`}>
-                <path 
+                <motion.path 
                   d="M 0 -8 Q 0 0 8 0 Q 0 0 0 8 Q 0 0 -8 0 Q 0 0 0 -8 Z" 
-                  fill="#ffffff" 
+                  animate={{ fill: isPaused ? "#fbbf24" : "#ffffff" }}
+                  transition={{ duration: 0.4 }}
                   opacity="0.95"
                 />
-                <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
+                <motion.circle 
+                  cx="0" cy="0" r="2.5" 
+                  animate={{ fill: isPaused ? "#fbbf24" : "#ffffff" }}
+                  transition={{ duration: 0.4 }}
+                />
               </g>
 
             </motion.g>

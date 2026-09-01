@@ -1,17 +1,28 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { useTranslation } from 'react-i18next'; // Добавили импорт переводов
-import { Play, Square, Pause, Coffee, Gift, Flame, Sun, Moon, ChevronsRight } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Play, Square, Pause, Coffee, Gift, Flame, Sun, Moon, ChevronsRight, Clock } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import ProgressCircle from '../components/ProgressCircle';
 import { getShiftDetails } from '../utils/salary';
 import { cn } from '../utils/utils';
 
 export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
-  const { t } = useTranslation(); // Инициализируем переводы
+  const { t } = useTranslation();
   const [isHolidaySelection, setIsHolidaySelection] = useState(false);
+  const [tick, setTick] = useState(0); 
   
   const trackRef = useRef(null);
   const controls = useAnimation();
+
+  useEffect(() => {
+    let interval;
+    if (activeShift && activeShift.isPaused) {
+      interval = setInterval(() => {
+        setTick((prev) => prev + 1); 
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [activeShift]);
 
   const shiftData = useMemo(() => {
     if (!activeShift) {
@@ -57,6 +68,21 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
   const isRunning = activeShift && !activeShift.isPaused;
   const isPaused = activeShift && activeShift.isPaused;
   const isNightTime = shiftData.nightMs > 0;
+
+  // --- ЛОГИКА ИНФО-ПАНЕЛИ (СТАРТ И ПАУЗА) ---
+  let startStr = '--:--';
+  let pauseStr = '00:00:00';
+
+  if (activeShift) {
+    const startD = new Date(activeShift.startTime);
+    startStr = startD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const totalPauseMs = Math.max(0, Date.now() - activeShift.startTime - elapsed);
+    
+    const pTime = formatTime(totalPauseMs);
+    pauseStr = `${pTime.h}:${pTime.m}:${pTime.s}`;
+  }
+  // ---------------------------------
 
   let glassBg = "bg-gradient-to-br from-white/5 to-white/[0.01]";
   
@@ -122,113 +148,140 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
       <motion.div 
         initial={false} 
         animate={{ scale: 1, opacity: 1 }} 
-        className="relative mb-14 mt-4 flex justify-center items-center w-80 h-80"
+        className="relative mb-10 mt-4 flex flex-col justify-center items-center w-80"
       >
-        <ProgressCircle 
-          elapsed={elapsed} 
-          shiftData={shiftData} 
-          isRunning={isRunning} 
-          isPaused={isPaused} 
-        />
+        <div className="relative flex justify-center items-center w-80 h-80">
+          <ProgressCircle 
+            elapsed={elapsed} 
+            shiftData={shiftData} 
+            isRunning={isRunning} 
+            isPaused={isPaused} 
+          />
 
-        <div className={cn(
-          "absolute inset-0 rounded-full border border-white/5 flex flex-col items-center justify-center transition-all duration-700 overflow-hidden",
-          "backdrop-blur-2xl shadow-[inset_0_0_50px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.8)]",
-          glassBg
-        )}>
-          <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-60 rounded-t-full z-0" />
-          
-          {/* 🧭 12-ЧАСОВОЙ ЦИФЕРБЛАТ */}
-          <div className="absolute inset-0 pointer-events-none z-10">
-            {[...Array(12)].map((_, i) => {
-              const hour = i === 0 ? 12 : i;
-              const isMain = i % 3 === 0;
+          <div className={cn(
+            "absolute inset-0 rounded-full border border-white/5 flex flex-col items-center justify-center transition-all duration-700 overflow-hidden",
+            "backdrop-blur-2xl shadow-[inset_0_0_50px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.8)]",
+            glassBg
+          )}>
+            <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-60 rounded-t-full z-0" />
+            
+            <div className="absolute inset-0 pointer-events-none z-10">
+              {[...Array(12)].map((_, i) => {
+                const hour = i === 0 ? 12 : i;
+                const isMain = i % 3 === 0;
 
-              return (
-                <div
-                  key={i}
-                  className="absolute inset-0 flex justify-center"
-                  style={{ transform: `rotate(${i * 30}deg)` }}
-                >
-                  <div className={cn(
-                    "absolute rounded-full transition-colors duration-500", 
-                    isMain ? "top-1.5 w-[3px] h-[10px] bg-white/40" : "top-2 w-1 h-1 bg-white/15"
-                  )} />
-                  
-                  <div 
-                    className={cn(
-                      "absolute font-bold tracking-wider flex items-center justify-center",
-                      isMain ? "top-5 text-[11px] text-white/60" : "top-5 text-[9px] text-white/20"
-                    )}
-                    style={{ transform: `rotate(${-i * 30}deg)` }} 
+                return (
+                  <div
+                    key={i}
+                    className="absolute inset-0 flex justify-center"
+                    style={{ transform: `rotate(${i * 30}deg)` }}
                   >
-                    {hour}
+                    <div className={cn(
+                      "absolute rounded-full transition-colors duration-500", 
+                      isMain ? "top-1.5 w-[3px] h-[10px] bg-white/40" : "top-2 w-1 h-1 bg-white/15"
+                    )} />
+                    
+                    <div 
+                      className={cn(
+                        "absolute font-bold tracking-wider flex items-center justify-center",
+                        isMain ? "top-5 text-[11px] text-white/60" : "top-5 text-[9px] text-white/20"
+                      )}
+                      style={{ transform: `rotate(${-i * 30}deg)` }} 
+                    >
+                      {hour}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {isPaused ? (
+              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-amber-400/90 relative z-20">
+                {/* Добавлен animate-pulse к центральной кружке */}
+                <Coffee size={48} className="mb-4 opacity-80 animate-pulse" />
+                <span className="text-2xl font-bold tracking-widest uppercase text-shadow-sm">{t('dashboard.pause')}</span>
+              </motion.div>
+            ) : (
+              <div className="flex flex-col items-center justify-center w-full mt-2 relative z-20">
+                <div className="flex flex-col items-center mb-4">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5 opacity-80">{t('dashboard.earnedNetto')}</span>
+                  <div className={cn("text-6xl font-black flex items-center tracking-tighter transition-colors duration-500", shiftData.isHoliday ? "text-amber-300" : shiftData.isWeekend ? "text-cyan-300" : "text-emerald-300")}>
+                    <span className="mr-2 opacity-60 text-3xl font-bold">{currency}</span>
+                    {shiftData.earned.toFixed(2)}
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 opacity-80">{t('dashboard.shiftTime')}</span>
+                  <div className="flex items-baseline space-x-1 tabular-nums tracking-tight mb-1 text-white/90">
+                    <span className="text-4xl font-bold">{h}</span>
+                    <span className="text-2xl pb-0.5 opacity-50">:</span>
+                    <span className="text-4xl font-bold">{m}</span>
+                    <span className="text-2xl pb-0.5 opacity-50">:</span>
+                    <span className={cn("text-4xl font-bold transition-colors duration-500", shiftData.isHoliday ? "text-amber-300" : shiftData.isWeekend ? "text-cyan-300" : shiftData.isOvertime ? "text-emerald-300" : "text-indigo-300")}>{s}</span>
+                  </div>
+                </div>
+                
+                <AnimatePresence>
+                  {shiftData.overtimeMs > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      className="flex flex-col items-center overflow-hidden"
+                    >
+                      <div className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest bg-black/20 backdrop-blur-md", shiftData.isHoliday ? "border-amber-500/30 text-amber-300" : shiftData.isWeekend ? "border-cyan-500/30 text-cyan-300" : "border-emerald-500/30 text-emerald-300")}>
+                        {shiftData.isHoliday ? <Gift size={12} /> : shiftData.isWeekend ? <Sun size={12} /> : <Flame size={12} />}
+                        <span className="tabular-nums">{ot.h}:{ot.m}:{ot.s}</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {isNightTime && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      className="flex flex-col items-center overflow-hidden"
+                    >
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest bg-black/20 backdrop-blur-md border-blue-500/30 text-blue-300">
+                        <Moon size={12} />
+                        <span className="tabular-nums">{t('dashboard.nightHours')}: {nt.h}:{nt.m}:{nt.s}</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
-
-          {isPaused ? (
-            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-amber-400/90 relative z-20">
-              <Coffee size={48} className="mb-4 opacity-80" />
-              <span className="text-2xl font-bold tracking-widest uppercase text-shadow-sm">{t('dashboard.pause')}</span>
-            </motion.div>
-          ) : (
-            <div className="flex flex-col items-center justify-center w-full mt-2 relative z-20">
-              <div className="flex flex-col items-center mb-4">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5 opacity-80">{t('dashboard.earnedNetto')}</span>
-                <div className={cn("text-6xl font-black flex items-center tracking-tighter transition-colors duration-500", shiftData.isHoliday ? "text-amber-300" : shiftData.isWeekend ? "text-cyan-300" : "text-emerald-300")}>
-                  <span className="mr-2 opacity-60 text-3xl font-bold">{currency}</span>
-                  {shiftData.earned.toFixed(2)}
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 opacity-80">{t('dashboard.shiftTime')}</span>
-                <div className="flex items-baseline space-x-1 tabular-nums tracking-tight mb-1 text-white/90">
-                  <span className="text-4xl font-bold">{h}</span>
-                  <span className="text-2xl pb-0.5 opacity-50">:</span>
-                  <span className="text-4xl font-bold">{m}</span>
-                  <span className="text-2xl pb-0.5 opacity-50">:</span>
-                  <span className={cn("text-4xl font-bold transition-colors duration-500", shiftData.isHoliday ? "text-amber-300" : shiftData.isWeekend ? "text-cyan-300" : shiftData.isOvertime ? "text-emerald-300" : "text-indigo-300")}>{s}</span>
-                </div>
-              </div>
-              
-              <AnimatePresence>
-                {shiftData.overtimeMs > 0 && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                    animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
-                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                    className="flex flex-col items-center overflow-hidden"
-                  >
-                    <div className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest bg-black/20 backdrop-blur-md", shiftData.isHoliday ? "border-amber-500/30 text-amber-300" : shiftData.isWeekend ? "border-cyan-500/30 text-cyan-300" : "border-emerald-500/30 text-emerald-300")}>
-                      {shiftData.isHoliday ? <Gift size={12} /> : shiftData.isWeekend ? <Sun size={12} /> : <Flame size={12} />}
-                      <span className="tabular-nums">{ot.h}:{ot.m}:{ot.s}</span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <AnimatePresence>
-                {isNightTime && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                    animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
-                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                    className="flex flex-col items-center overflow-hidden"
-                  >
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest bg-black/20 backdrop-blur-md border-blue-500/30 text-blue-300">
-                      <Moon size={12} />
-                      <span className="tabular-nums">{t('dashboard.nightHours')}: {nt.h}:{nt.m}:{nt.s}</span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
         </div>
+
+        {/* ПАНЕЛЬ: Инфо-строка со временем и паузой */}
+        <AnimatePresence>
+          {activeShift && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              className="flex items-center justify-center gap-5 bg-zinc-900/60 border border-white/5 backdrop-blur-md rounded-full px-6 py-2.5 mt-5 shadow-lg z-20 w-auto min-w-[200px]"
+            >
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Clock size={14} className="text-zinc-500"/>
+                <span className="font-mono text-xs font-medium">{startStr}</span>
+              </div>
+
+              {/* Звездочка/Точка разделитель - теперь тоже подкрашивается */}
+              <span className={cn("text-xs transition-colors duration-500", isPaused ? "text-amber-400" : "text-zinc-700/50")}>•</span>
+
+              <div className={cn("flex items-center gap-2 transition-colors", isPaused ? "text-amber-400" : "text-zinc-400")}>
+                <Coffee size={14} className={isPaused ? "animate-pulse" : "text-zinc-500"}/>
+                <span className="font-mono text-xs font-medium tabular-nums">{pauseStr}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       <div className="flex gap-3 z-20 w-full max-w-sm px-4">
