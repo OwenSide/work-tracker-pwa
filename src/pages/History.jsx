@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame, Sun, Briefcase, Pill, Printer } from 'lucide-react';
+import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame, Palmtree, Briefcase, Pill, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getShiftDetails } from '../utils/salary';
 import { generatePDFReport } from '../utils/pdfGenerator';
@@ -176,7 +176,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const now = new Date();
     const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
     const groups = {};
-    const gStats = { earned: 0, overtimeMs: 0, totalDuration: 0 };
+    const gStats = { earned: 0, overtimeMs: 0, totalDuration: 0, urlopDays: 0, l4Days: 0 };
     
     shifts.forEach(shift => {
       const d = new Date(shift.startTime);
@@ -185,12 +185,20 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       if (!groups[key]) {
         let monthName = d.toLocaleDateString(i18n.language || 'ru-RU', { month: 'long', year: 'numeric' });
         monthName = monthName.charAt(0).toUpperCase() + monthName.slice(1).replace(' г.', '');
-        groups[key] = { id: key, label: monthName, sortValue: d.getTime(), shifts: [], earned: 0, totalDuration: 0, overtimeMs: 0 };
+        groups[key] = { id: key, label: monthName, sortValue: d.getTime(), shifts: [], earned: 0, totalDuration: 0, overtimeMs: 0, urlopDays: 0, l4Days: 0 };
       }
       
       const isHol = shift.isHoliday === true || (typeof shift.note === 'string' && shift.note.includes('Праздник'));
       const safeDuration = Number(shift.durationMs) || 0;
       const type = shift.type || 'standard';
+
+      if (type === 'urlop') {
+        groups[key].urlopDays += 1;
+        gStats.urlopDays += 1;
+      } else if (type === 'l4') {
+        groups[key].l4Days += 1;
+        gStats.l4Days += 1;
+      }
 
       const { overtimeMs: shiftOvertime } = getShiftDetails({
         durationMs: safeDuration, shiftStart: shift.startTime, endTime: shift.endTime,
@@ -201,15 +209,20 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
 
       groups[key].shifts.push(shift);
       groups[key].earned += safeEarned; 
-      groups[key].totalDuration += safeDuration;
+      
+      // УСЛОВИЕ: Добавляем часы в общую сумму только если это НЕ больничный
+      if (type !== 'l4') {
+        groups[key].totalDuration += safeDuration;
+        gStats.totalDuration += safeDuration;
+      }
+
       groups[key].overtimeMs += shiftOvertime;
       
       gStats.earned += safeEarned;
       gStats.overtimeMs += shiftOvertime;
-      gStats.totalDuration += safeDuration;
     });
 
-    const current = groups[currentKey] || { shifts: [], label: t('history.currentMonth'), earned: 0, totalDuration: 0, overtimeMs: 0 }; 
+    const current = groups[currentKey] || { shifts: [], label: t('history.currentMonth'), earned: 0, totalDuration: 0, overtimeMs: 0, urlopDays: 0, l4Days: 0 }; 
     const archives = Object.values(groups).filter(g => g.id !== currentKey).sort((a, b) => b.sortValue - a.sortValue);
     
     return { currentMonthData: current, archiveMonths: archives, globalStats: gStats };
@@ -336,22 +349,36 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
           </div>
         </div>
 
-        {/* Информационные бейджи */}
-        <div className="relative z-10 mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        {/* УМЕНЬШЕННЫЕ ИНФОРМАЦИОННЫЕ БЕЙДЖИ */}
+        <div className="relative z-10 mt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-400 bg-black/40 border border-white/5 px-2.5 py-1.5 rounded-lg backdrop-blur-md whitespace-nowrap">
-            <Clock size={12} className="text-zinc-500 shrink-0" />
+          <div className="flex items-center gap-1 text-[9px] font-semibold text-zinc-400 bg-black/40 border border-white/5 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
+            <Clock size={10} className="text-zinc-500 shrink-0" />
             <span className="uppercase tracking-wider mt-0.5">
               {t('history.badges.total')} <span className="text-white font-mono ml-0.5">{formatTime(displayStats.totalDuration)}</span>
             </span>
           </div>
 
           {showBadges && (
-            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg backdrop-blur-md whitespace-nowrap">
-              <Flame size={12} className="shrink-0" />
+            <div className="flex items-center gap-1 text-[9px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
+              <Flame size={10} className="shrink-0" />
               <span className="uppercase tracking-wider mt-0.5">
-                {t('history.badges.overtime')} <span className="font-mono ml-0.5">{formatTime(displayStats.overtimeMs)}</span>
+                <span className="font-mono ml-0.5">{formatTime(displayStats.overtimeMs)}</span>
               </span>
+            </div>
+          )}
+
+          {displayStats.urlopDays > 0 && (
+            <div className="flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
+              <Palmtree size={10} className="shrink-0" />
+              <span className="font-mono mt-0.5">{displayStats.urlopDays}</span>
+            </div>
+          )}
+
+          {displayStats.l4Days > 0 && (
+            <div className="flex items-center gap-1 text-[9px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
+              <Pill size={10} className="shrink-0" />
+              <span className="font-mono mt-0.5">{displayStats.l4Days}</span>
             </div>
           )}
           
@@ -403,7 +430,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                       {contractType === 'oprace' && (
                         <div className="flex bg-zinc-950 p-1 rounded-xl border border-white/5">
                           <button onClick={() => setShiftType('standard')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'standard' ? "bg-zinc-800 text-white" : "text-zinc-500")}><Briefcase size={12}/> {t('history.manual.work')}</button>
-                          <button onClick={() => setShiftType('urlop')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'urlop' ? "bg-emerald-500/20 text-emerald-400" : "text-zinc-500")}><Sun size={12}/> Urlop</button>
+                          <button onClick={() => setShiftType('urlop')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'urlop' ? "bg-emerald-500/20 text-emerald-400" : "text-zinc-500")}><Palmtree size={12}/> Urlop</button>
                           <button onClick={() => setShiftType('l4')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all flex justify-center items-center gap-1.5", shiftType === 'l4' ? "bg-rose-500/20 text-rose-400" : "text-zinc-500")}><Pill size={12}/> L4</button>
                         </div>
                       )}
@@ -510,7 +537,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                             exit={{ height: 0, opacity: 0 }} 
                             className="border-t border-white/[0.04] bg-black/20 overflow-hidden"
                           >
-                            {/* Убран внутренний скролл! */}
                             <div className="p-3 flex flex-col gap-2">
                               {month.shifts.map(shift => renderShiftItem(shift))}
                             </div>
