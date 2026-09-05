@@ -510,7 +510,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                             exit={{ height: 0, opacity: 0 }} 
                             className="border-t border-white/[0.04] bg-black/20 overflow-hidden"
                           >
-                            <div className="p-3 flex flex-col gap-2 max-h-[55vh] overflow-y-auto no-scrollbar overscroll-contain">
+                            {/* Убран внутренний скролл! */}
+                            <div className="p-3 flex flex-col gap-2">
                               {month.shifts.map(shift => renderShiftItem(shift))}
                             </div>
                           </motion.div>
