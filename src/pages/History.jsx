@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getShiftDetails } from '../utils/salary';
 import { generatePDFReport } from '../utils/pdfGenerator';
 import { cn } from '../utils/utils';
+import catSvg from '../assets/cat.svg';
 
 export default function History({ shifts, setShifts, hourlyRate, currency, contractType, monthlyRate, taxStatus }) {
   const { t, i18n } = useTranslation();
@@ -69,7 +70,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const isHol = shift.isHoliday === true || (shift.note && typeof shift.note === 'string' && shift.note.includes('Праздник'));
     setEditHoliday(isHol);
     
-    // Универсальная очистка заметки от системных префиксов (любого языка) по эмодзи
     let cleanNote = shift.note || '';
     cleanNote = cleanNote.replace(/^(🎁|🌴|💊)[^|]*(\|\s)?/, '').trim();
     
@@ -172,11 +172,10 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     setManualDate(''); setManualEndDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote(''); setManualHoliday(false); setShiftType('standard');
   };
 
-  const { currentMonthData, archiveMonths, globalStats } = useMemo(() => {
+  const { currentMonthData, archiveMonths } = useMemo(() => {
     const now = new Date();
     const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
     const groups = {};
-    const gStats = { earned: 0, overtimeMs: 0, totalDuration: 0, urlopDays: 0, l4Days: 0 };
     
     shifts.forEach(shift => {
       const d = new Date(shift.startTime);
@@ -194,10 +193,8 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
 
       if (type === 'urlop') {
         groups[key].urlopDays += 1;
-        gStats.urlopDays += 1;
       } else if (type === 'l4') {
         groups[key].l4Days += 1;
-        gStats.l4Days += 1;
       }
 
       const { overtimeMs: shiftOvertime } = getShiftDetails({
@@ -210,22 +207,17 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       groups[key].shifts.push(shift);
       groups[key].earned += safeEarned; 
       
-      // УСЛОВИЕ: Добавляем часы в общую сумму только если это НЕ больничный
       if (type !== 'l4') {
         groups[key].totalDuration += safeDuration;
-        gStats.totalDuration += safeDuration;
       }
 
       groups[key].overtimeMs += shiftOvertime;
-      
-      gStats.earned += safeEarned;
-      gStats.overtimeMs += shiftOvertime;
     });
 
     const current = groups[currentKey] || { shifts: [], label: t('history.currentMonth'), earned: 0, totalDuration: 0, overtimeMs: 0, urlopDays: 0, l4Days: 0 }; 
     const archives = Object.values(groups).filter(g => g.id !== currentKey).sort((a, b) => b.sortValue - a.sortValue);
     
-    return { currentMonthData: current, archiveMonths: archives, globalStats: gStats };
+    return { currentMonthData: current, archiveMonths: archives };
   }, [shifts, contractType, hourlyRate, monthlyRate, taxStatus, i18n.language, t]);
 
   const renderShiftItem = (shift) => {
@@ -322,75 +314,101 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     );
   };
 
-  const displayStats = activeTab === 'current' ? currentMonthData : globalStats;
-  const showBadges = contractType === 'oprace' && activeTab === 'current' && displayStats.overtimeMs > 0;
-  const mainAmount = Number(displayStats?.earned || 0).toFixed(2);
+  // ЛОГИКА ШАПКИ И СТАТИСТИКИ
+  const displayStats = activeTab === 'current' 
+    ? currentMonthData 
+    : (expandedArchive ? archiveMonths.find(m => m.id === expandedArchive) : null);
+
+  const showBadges = contractType === 'oprace' && displayStats && displayStats.overtimeMs > 0;
+  const mainAmount = displayStats ? Number(displayStats.earned || 0).toFixed(2) : "0.00";
 
   return (
     <div className="p-3 sm:p-5 h-full flex flex-col bg-black overflow-hidden">
       
-      {/* Компактная шапка */}
-      <div className="relative mb-5 bg-zinc-900/60 p-5 rounded-[1.5rem] border border-white/10 overflow-hidden shrink-0">
+      {/* ИЗМЕНЕННАЯ ШАПКА */}
+      <div className="relative mb-5 bg-zinc-900/60 p-5 rounded-[1.5rem] border border-white/10 overflow-hidden shrink-0 min-h-[125px] flex items-center justify-center transition-all duration-300">
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none"></div>
         
-        <div className="relative z-10 flex justify-between items-center">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">
-              {activeTab === 'current' ? t('history.headers.monthTotal') : t('history.headers.globalTotal')}
+        {!displayStats ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative z-10 flex flex-col items-center justify-center w-full opacity-60"
+          >
+            <img src={catSvg} alt="Sleeping cat" className="w-18 h-18 object-contain mb-1" />
+            <span className="text-[9px] text-zinc-500 font-medium tracking-widest uppercase text-center max-w-[200px]">
+              {t('history.alerts.selectMonth', { defaultValue: 'Выберите месяц для просмотра' })}
             </span>
-            <div className="text-3xl font-light text-white flex items-center tracking-tight">
-              <span className="text-emerald-500 font-light mr-1.5 text-2xl">{currency}</span>
-              {mainAmount}
+          </motion.div>
+        ) : (
+          // СТАНДАРТНАЯ ШАПКА СО СТАТИСТИКОЙ МЕСЯЦА
+          <div className="relative z-10 w-full animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex justify-between items-center">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">
+                  {activeTab === 'current' ? t('history.headers.monthTotal') : displayStats.label}
+                </span>
+                <div className="text-3xl font-light text-white flex items-center tracking-tight">
+                  <span className="text-emerald-500 font-light mr-1.5 text-2xl">{currency}</span>
+                  {mainAmount}
+                </div>
+              </div>
+              
+              <div className="bg-zinc-800/50 p-3 rounded-xl border border-white/5">
+                <Wallet className="text-zinc-400" size={20} strokeWidth={1.5} />
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+
+              {/* УБРАН БЕЙДЖ РАБОЧИХ ДНЕЙ */}
+
+              <div className="flex items-center gap-1 text-[9px] font-semibold text-zinc-400 bg-black/40 border border-white/5 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
+                <Clock size={10} className="text-zinc-500 shrink-0" />
+                <span className="uppercase tracking-wider mt-0.5">
+                  {t('history.badges.total')} <span className="text-white font-mono ml-0.5">{formatTime(displayStats.totalDuration)}</span>
+                </span>
+              </div>
+
+              {showBadges && (
+                <div className="flex items-center gap-1 text-[9px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
+                  <Flame size={10} className="shrink-0" />
+                  <span className="uppercase tracking-wider mt-0.5">
+                    <span className="font-mono ml-0.5">{formatTime(displayStats.overtimeMs)}</span>
+                  </span>
+                </div>
+              )}
+
+              {displayStats.urlopDays > 0 && (
+                <div className="flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
+                  <Palmtree size={10} className="shrink-0" />
+                  <span className="font-mono mt-0.5">{displayStats.urlopDays}</span>
+                </div>
+              )}
+
+              {displayStats.l4Days > 0 && (
+                <div className="flex items-center gap-1 text-[9px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
+                  <Pill size={10} className="shrink-0" />
+                  <span className="font-mono mt-0.5">{displayStats.l4Days}</span>
+                </div>
+              )}
             </div>
           </div>
-          
-          <div className="bg-zinc-800/50 p-3 rounded-xl border border-white/5">
-            <Wallet className="text-zinc-400" size={20} strokeWidth={1.5} />
-          </div>
-        </div>
-
-        {/* УМЕНЬШЕННЫЕ ИНФОРМАЦИОННЫЕ БЕЙДЖИ */}
-        <div className="relative z-10 mt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          
-          <div className="flex items-center gap-1 text-[9px] font-semibold text-zinc-400 bg-black/40 border border-white/5 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
-            <Clock size={10} className="text-zinc-500 shrink-0" />
-            <span className="uppercase tracking-wider mt-0.5">
-              {t('history.badges.total')} <span className="text-white font-mono ml-0.5">{formatTime(displayStats.totalDuration)}</span>
-            </span>
-          </div>
-
-          {showBadges && (
-            <div className="flex items-center gap-1 text-[9px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
-              <Flame size={10} className="shrink-0" />
-              <span className="uppercase tracking-wider mt-0.5">
-                <span className="font-mono ml-0.5">{formatTime(displayStats.overtimeMs)}</span>
-              </span>
-            </div>
-          )}
-
-          {displayStats.urlopDays > 0 && (
-            <div className="flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
-              <Palmtree size={10} className="shrink-0" />
-              <span className="font-mono mt-0.5">{displayStats.urlopDays}</span>
-            </div>
-          )}
-
-          {displayStats.l4Days > 0 && (
-            <div className="flex items-center gap-1 text-[9px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
-              <Pill size={10} className="shrink-0" />
-              <span className="font-mono mt-0.5">{displayStats.l4Days}</span>
-            </div>
-          )}
-          
-        </div>
+        )}
       </div>
 
       {/* Компактные табы */}
       <div className="flex bg-zinc-900 p-1 rounded-xl mb-4 border border-white/5 shrink-0">
-        <button onClick={() => setActiveTab('current')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5", activeTab === 'current' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300")}>
+        <button 
+          onClick={() => { setActiveTab('current'); setExpandedArchive(null); }} 
+          className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5", activeTab === 'current' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300")}
+        >
           <Clock size={14} /> {t('history.tabs.current')}
         </button>
-        <button onClick={() => setActiveTab('archive')} className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5", activeTab === 'archive' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300")}>
+        <button 
+          onClick={() => setActiveTab('archive')} 
+          className={cn("flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5", activeTab === 'archive' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300")}
+        >
           <CalendarDays size={14} /> {t('history.tabs.archive')}
         </button>
       </div>
@@ -553,4 +571,4 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       </div>
     </div>
   );
-}
+}r

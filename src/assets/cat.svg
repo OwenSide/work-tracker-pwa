@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <style>
+    /* Анимация плавного дыхания (тельце увеличивается и опускается) */
+    .cat-group {
+      transform-origin: 60px 100px;
+      animation: catBreathe 3.5s infinite ease-in-out;
+    }
+    
+    /* Базовые стили для летящих букв */
+    .z-mark {
+      opacity: 0;
+      animation: floatZ 3.5s infinite ease-in-out;
+      font-family: ui-rounded, 'Nunito', 'Comic Sans MS', sans-serif;
+      font-weight: 800;
+      fill: #a1a1aa; /* Цвет zinc-400 */
+    }
+    
+    /* Задержки и размеры для каждой буквы Z */
+    .z-1 { animation-delay: 0s; font-size: 14px; }
+    .z-2 { animation-delay: 1.1s; font-size: 18px; }
+    .z-3 { animation-delay: 2.2s; font-size: 24px; }
+    
+    @keyframes catBreathe {
+      0%, 100% { transform: scaleX(1) scaleY(1) translateY(0); }
+      50% { transform: scaleX(1.02) scaleY(1.04) translateY(-1px); }
+    }
+    
+    /* Траектория полета Zzz: они летят вверх, покачиваясь влево-вправо */
+    @keyframes floatZ {
+      0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+      20% { opacity: 1; transform: translate(8px, -10px) scale(0.8); }
+      50% { opacity: 1; transform: translate(-4px, -25px) scale(1); }
+      80% { opacity: 0.8; transform: translate(6px, -40px) scale(1.1); }
+      100% { opacity: 0; transform: translate(0, -50px) scale(1.2); }
+    }
+  </style>
+
+  <!-- Полупрозрачная тень на полу -->
+  <ellipse cx="60" cy="102" rx="45" ry="5" fill="#27272a" opacity="0.3" />
+
+  <!-- Группа кота (к ней применяется анимация дыхания) -->
+  <g class="cat-group">
+    
+    <!-- Пушистый закрученный хвост -->
+    <path d="M 85 90 C 120 90 120 55 95 55 C 88 55 82 60 82 67" fill="none" stroke="#71717a" stroke-width="10" stroke-linecap="round" />
+    
+    <!-- Задняя лапка -->
+    <rect x="65" y="93" width="16" height="8" rx="4" fill="#71717a" />
+    
+    <!-- Основное тельце (овал) -->
+    <ellipse cx="60" cy="85" rx="36" ry="16" fill="#71717a" />
+    
+    <!-- Передняя лапка -->
+    <rect x="35" y="94" width="16" height="7" rx="3.5" fill="#71717a" />
+    
+    <!-- Круглая голова -->
+    <circle cx="34" cy="78" r="16" fill="#71717a" />
+    
+    <!-- Левое ухо -->
+    <polygon points="19,70 21,52 31,64" fill="#71717a" stroke="#71717a" stroke-width="2" stroke-linejoin="round" />
+    <polygon points="22,65 24,56 29,63" fill="#52525b" /> <!-- Внутренняя тень ушка -->
+    
+    <!-- Правое ухо -->
+    <polygon points="36,62 45,49 48,67" fill="#71717a" stroke="#71717a" stroke-width="2" stroke-linejoin="round" />
+    <polygon points="38,62 44,54 45,64" fill="#52525b" /> <!-- Внутренняя тень ушка -->
+    
+    <!-- Закрытые спящие глазки (дуги) -->
+    <path d="M 21 78 Q 24 75 27 78" fill="none" stroke="#27272a" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M 34 78 Q 37 75 40 78" fill="none" stroke="#27272a" stroke-width="2.5" stroke-linecap="round" />
+    
+    <!-- Маленький носик -->
+    <ellipse cx="30" cy="83" rx="2.5" ry="1.5" fill="#27272a" />
+    
+    <!-- Усики слева -->
+    <path d="M 19 84 L 11 83 M 20 87 L 12 88" fill="none" stroke="#52525b" stroke-width="1.5" stroke-linecap="round" />
+    
+    <!-- Усики справа -->
+    <path d="M 41 84 L 49 83 M 40 87 L 48 88" fill="none" stroke="#52525b" stroke-width="1.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Вылетающие буквы сна Zzz -->
+  <text class="z-mark z-1" x="35" y="60">z</text>
+  <text class="z-mark z-2" x="35" y="60">Z</text>
+  <text class="z-mark z-3" x="35" y="60">Z</text>
+</svg>
