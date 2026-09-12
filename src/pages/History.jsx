@@ -172,14 +172,17 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     setManualDate(''); setManualEndDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote(''); setManualHoliday(false); setShiftType('standard');
   };
 
-  const { currentMonthData, archiveMonths } = useMemo(() => {
+  const { currentMonthData, archiveMonths, currentYearEarned, currentYear } = useMemo(() => {
     const now = new Date();
-    const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
+    const currentYear = now.getFullYear();
+    const currentKey = `${currentYear}-${now.getMonth()}`;
     const groups = {};
+    let earnedThisYear = 0;
     
     shifts.forEach(shift => {
       const d = new Date(shift.startTime);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const shiftYear = d.getFullYear();
+      const key = `${shiftYear}-${d.getMonth()}`;
       
       if (!groups[key]) {
         let monthName = d.toLocaleDateString(i18n.language || 'ru-RU', { month: 'long', year: 'numeric' });
@@ -207,6 +210,10 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       groups[key].shifts.push(shift);
       groups[key].earned += safeEarned; 
       
+      if (shiftYear === currentYear) {
+        earnedThisYear += safeEarned;
+      }
+      
       if (type !== 'l4') {
         groups[key].totalDuration += safeDuration;
       }
@@ -217,7 +224,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     const current = groups[currentKey] || { shifts: [], label: t('history.currentMonth'), earned: 0, totalDuration: 0, overtimeMs: 0, urlopDays: 0, l4Days: 0 }; 
     const archives = Object.values(groups).filter(g => g.id !== currentKey).sort((a, b) => b.sortValue - a.sortValue);
     
-    return { currentMonthData: current, archiveMonths: archives };
+    return { currentMonthData: current, archiveMonths: archives, currentYearEarned: earnedThisYear, currentYear };
   }, [shifts, contractType, hourlyRate, monthlyRate, taxStatus, i18n.language, t]);
 
   const renderShiftItem = (shift) => {
@@ -331,14 +338,61 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
         
         {!displayStats ? (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative z-10 flex flex-col items-center justify-center w-full opacity-60"
+            initial={{ opacity: 0, scale: 0.95 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            className="relative z-10 flex items-center justify-between w-full gap-4"
           >
-            <img src={catSvg} alt="Sleeping cat" className="w-18 h-18 object-contain mb-1" />
-            <span className="text-[9px] text-zinc-500 font-medium tracking-widest uppercase text-center max-w-[200px]">
-              {t('history.alerts.selectMonth', { defaultValue: 'Выберите месяц для просмотра' })}
-            </span>
+            {/* Котик слева */}
+            <div className="flex flex-col items-center justify-center shrink-0 pl-1">
+              <img src={catSvg} alt="Cat" className="w-14 h-14 object-contain mb-1" />
+              <span className="text-[9px] text-zinc-500 font-medium tracking-widest uppercase text-center bg-zinc-950/50 px-2.5 py-0.5 rounded-full border border-white/5">
+                {currentYear} {t('history.year', { defaultValue: 'ГОД' })}
+              </span>
+            </div>
+
+            {/* Прогресс-бар справа */}
+            <div className="flex-1 flex flex-col justify-center pr-1">
+              
+              <div className="flex justify-between items-end mb-2">
+                <div className="flex flex-col">
+                  <span className="text-[9px] text-zinc-400 font-medium uppercase tracking-widest">
+                    {t('history.yearlyIncome', { defaultValue: 'Доход за год' })}
+                  </span>
+                  <div className="text-xl font-light text-white flex items-center tracking-tight mt-0.5">
+                    <span className="text-emerald-500 font-light mr-1 text-lg">{currency}</span>
+                    {currentYearEarned.toFixed(2)}
+                  </div>
+                </div>
+
+                <div className="text-[9px] font-semibold tracking-wide bg-black/40 px-2 py-1 rounded-lg border border-white/5">
+                  {currentYearEarned >= 30000 ? (
+                    <span className="text-amber-400">{t('history.limitReached', { defaultValue: 'Лимит 12%' })}</span>
+                  ) : (
+                    <span className="text-emerald-400 flex items-center gap-1">
+                      {currency}{(30000 - currentYearEarned).toFixed(0)} 
+                      <span className="text-zinc-500 font-normal uppercase text-[8px]">{t('history.untilTax', { defaultValue: 'до налога' })}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Полоса прогресса */}
+              <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-white/5 relative">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all duration-1000",
+                    currentYearEarned >= 30000 ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                  )}
+                  style={{ width: `${Math.min(100, (currentYearEarned / 30000) * 100)}%` }}
+                />
+              </div>
+              
+              <div className="flex justify-between mt-1.5">
+                <span className="text-[8px] text-zinc-600 font-mono">0</span>
+                <span className="text-[8px] text-zinc-600 font-mono">30 000</span>
+              </div>
+              
+            </div>
           </motion.div>
         ) : (
           // СТАНДАРТНАЯ ШАПКА СО СТАТИСТИКОЙ МЕСЯЦА
@@ -571,4 +625,4 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       </div>
     </div>
   );
-}r
+}
