@@ -89,6 +89,10 @@
       "sickLeave": "💊 Sick Leave L4 (80%)"
     },
     "currentMonth": "Current Month",
+    "year": "YEAR",
+    "yearlyIncome": "Yearly income",
+    "limitReached": "12% limit",
+    "untilTax": "until tax",
     "time": {
       "h": "h",
       "m": "m"

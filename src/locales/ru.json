@@ -89,6 +89,10 @@
       "sickLeave": "💊 Больничный L4 (80%)"
     },
     "currentMonth": "Текущий месяц",
+    "year": "ГОД",
+    "yearlyIncome": "Доход за год",
+    "limitReached": "Лимит 12%",
+    "untilTax": "до налога",
     "time": {
       "h": "ч",
       "m": "м"

@@ -89,6 +89,10 @@
       "sickLeave": "💊 Лікарняний L4 (80%)"
     },
     "currentMonth": "Поточний місяць",
+    "year": "РІК",
+    "yearlyIncome": "Дохід за рік",
+    "limitReached": "Ліміт 12%",
+    "untilTax": "до податку",
     "time": {
       "h": "г",
       "m": "хв"

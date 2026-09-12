@@ -89,6 +89,10 @@
       "sickLeave": "💊 Zwolnienie L4 (80%)"
     },
     "currentMonth": "Bieżący miesiąc",
+    "year": "ROK",
+    "yearlyIncome": "Dochód roczny",
+    "limitReached": "Limit 12%",
+    "untilTax": "do podatku",
     "time": {
       "h": "g",
       "m": "m"
