@@ -6,6 +6,7 @@ import { getShiftDetails } from '../utils/salary';
 import { generatePDFReport } from '../utils/pdfGenerator';
 import { cn } from '../utils/utils';
 import catSvg from '../assets/cat.svg';
+import PrankIcon from '../components/PrankIcon';
 
 export default function History({ shifts, setShifts, hourlyRate, currency, contractType, monthlyRate, taxStatus }) {
   const { t, i18n } = useTranslation();
@@ -408,9 +409,19 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                 </div>
               </div>
               
-              <div className="bg-zinc-800/50 p-3 rounded-xl border border-white/5">
-                <Wallet className="text-zinc-400" size={20} strokeWidth={1.5} />
-              </div>
+              <PrankIcon 
+                icon={Wallet} 
+                messages={[
+                  "Карина, это не кнопка! 😑",
+                  "Я просто картинка, алло!",
+                  "От твоих нажатий зарплата не вырастет 💸",
+                  "Карин, ну серьезно, хватит тыкать 🛑",
+                  "Аванс не выдам! И не проси!",
+                  "У тебя что, пальцы чешутся? 🦖",
+                  "Иди смены заполняй, бездельница! 💼",
+                  "КАРИНА, АСТАНАВИСЬ!!! 💥"
+                ]} 
+              />
             </div>
 
             <div className="relative z-10 mt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Download, Trash2, AlertTriangle, FileCode, Upload, Briefcase, GraduationCap, User, Settings as SettingsIcon, ShieldCheck, ChevronDown } from 'lucide-react';
 import { cn } from '../utils/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import PrankIcon from '../components/PrankIcon';
 
 export default function Settings({ 
   contractType, setContractType, 
@@ -123,9 +124,18 @@ export default function Settings({
       
       {/* Заголовок */}
       <div className="flex items-center gap-3 mb-6 mt-2 px-2">
-        <div className="bg-zinc-900 border border-white/5 p-2.5 rounded-2xl">
-          <SettingsIcon size={24} className="text-zinc-300" strokeWidth={1.5} />
-        </div>
+        <PrankIcon 
+          icon={SettingsIcon} 
+          messages={[
+            "Карина, не крути шестеренки! ⚙️",
+            "Маникюр испортишь!",
+            "Ты сейчас мне всё приложение сломаешь 🔧",
+            "Карин, ну куда ты лезешь? 🤦‍♀️",
+            "Ты хакер что ли? 🧑‍💻",
+            "Пальцы прищемишь, ну!",
+            "КАРИНА, ВЫЙДИ ИЗ НАСТРОЕК! 😡"
+          ]} 
+        />
         <h2 className="text-2xl font-light text-white tracking-wide">{t('settings.title')}</h2>
       </div>
       
