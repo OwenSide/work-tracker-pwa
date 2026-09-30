@@ -73,7 +73,8 @@ export default function App() {
     }
   };
 
-  const stopShift = () => {
+  // ПРИНИМАЕМ СЧЕТЧИК ТОВАРОВ ИЗ DASHBOARD
+  const stopShift = (itemsCount = 0) => {
     if (!activeShift) return;
     const endTime = Date.now();
     
@@ -96,6 +97,7 @@ export default function App() {
       durationMs, 
       earned,
       pauseMs: finalPauseTime,
+      itemsCollected: itemsCount, // СОХРАНЯЕМ СОБРАННУЮ НОРМУ В АРХИВ
       note: activeShift.isHoliday ? '🎁 Праздник (x2)' : ''
     };
     
@@ -105,7 +107,6 @@ export default function App() {
 
   if (!isAppReady) {
     return (
-      // Заменили на глубокий черный #030303
       <div className="h-[100dvh] w-full bg-[#030303] flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
@@ -125,7 +126,6 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Вынесенный компонент навигации */}
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
       
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame, Palmtree, Briefcase, Pill, Printer } from 'lucide-react';
+import { Clock, History as HistoryIcon, Wallet, ArrowRight, Plus, X, CalendarDays, ChevronDown, ChevronUp, Trash2, Pencil, Coffee, MessageSquare, Gift, Flame, Palmtree, Briefcase, Pill, Printer, Package } from 'lucide-react'; // Добавили Package
 import { motion, AnimatePresence } from 'framer-motion';
 import { getShiftDetails } from '../utils/salary';
 import { generatePDFReport } from '../utils/pdfGenerator';
@@ -21,6 +21,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
   const [manualStartTime, setManualStartTime] = useState('');
   const [manualEndTime, setManualEndTime] = useState('');
   const [manualBreak, setManualBreak] = useState('');
+  const [manualItems, setManualItems] = useState(''); // Стейт для товаров (вручную)
   const [manualNote, setManualNote] = useState('');
   const [manualHoliday, setManualHoliday] = useState(false);
 
@@ -30,6 +31,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
   const [editStartTime, setEditStartTime] = useState('');
   const [editEndTime, setEditEndTime] = useState('');
   const [editBreak, setEditBreak] = useState('');
+  const [editItems, setEditItems] = useState(''); // Стейт для товаров (редакт.)
   const [editNote, setEditNote] = useState('');
   const [editHoliday, setEditHoliday] = useState(false);
 
@@ -67,6 +69,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     setEditStartTime(`${String(startD.getHours()).padStart(2, '0')}:${String(startD.getMinutes()).padStart(2, '0')}`);
     setEditEndTime(`${String(endD.getHours()).padStart(2, '0')}:${String(endD.getMinutes()).padStart(2, '0')}`);
     setEditBreak(shift.pauseMs ? Math.round(shift.pauseMs / 60000).toString() : '');
+    setEditItems(shift.itemsCollected ? shift.itemsCollected.toString() : ''); // Загружаем товары
     
     const isHol = shift.isHoliday === true || (shift.note && typeof shift.note === 'string' && shift.note.includes('Праздник'));
     setEditHoliday(isHol);
@@ -87,6 +90,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
 
     const pauseMs = (parseInt(editBreak) || 0) * 60000;
     const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
+    const itemsCollected = parseInt(editItems, 10) || 0; // Сохраняем товары
     
     const editingShift = shifts.find(s => s.id === editingShiftId);
     const type = editingShift?.type || 'standard';
@@ -102,8 +106,10 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
     else if (type === 'l4') finalNote = finalNote ? `${t('history.notes.sickLeave')} | ${finalNote}` : t('history.notes.sickLeave');
     else if (contractType === 'oprace' && editHoliday) finalNote = finalNote ? `${t('history.notes.holiday')} | ${finalNote}` : t('history.notes.holiday');
 
-    const updatedShifts = shifts.map(shift => shift.id === editingShiftId ? { ...shift, startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note: finalNote, isHoliday: editHoliday } : shift)
-      .sort((a, b) => b.startTime - a.startTime);
+    const updatedShifts = shifts.map(shift => shift.id === editingShiftId ? { 
+      ...shift, startTime: start.getTime(), endTime: end.getTime(), 
+      durationMs, earned, pauseMs, itemsCollected, note: finalNote, isHoliday: editHoliday 
+    } : shift).sort((a, b) => b.startTime - a.startTime);
 
     setShifts(updatedShifts);
     setEditingShiftId(null);
@@ -140,7 +146,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
 
           newShifts.push({
             id: Date.now() + Math.random(), startTime: start.getTime(), endTime: end.getTime(),
-            durationMs, earned, pauseMs: 0, note: baseNote, isHoliday: false, type: shiftType
+            durationMs, earned, pauseMs: 0, itemsCollected: 0, note: baseNote, isHoliday: false, type: shiftType
           });
         }
         currentDate.setDate(currentDate.getDate() + 1);
@@ -151,6 +157,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       const end = new Date(`${manualDate}T${manualEndTime}`);
       if (end < start) end.setDate(end.getDate() + 1);
       const pauseMs = (parseInt(manualBreak) || 0) * 60000;
+      const itemsCollected = parseInt(manualItems, 10) || 0; // Сохраняем товары
       const durationMs = Math.max(0, end.getTime() - start.getTime() - pauseMs);
 
       const { earned } = getShiftDetails({
@@ -163,14 +170,18 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
         finalNote = finalNote ? `${t('history.notes.holiday')} | ${finalNote}` : t('history.notes.holiday');
       }
 
-      newShifts.push({ id: Date.now(), startTime: start.getTime(), endTime: end.getTime(), durationMs, earned, pauseMs, note: finalNote, isHoliday: manualHoliday, type: shiftType });
+      newShifts.push({ 
+        id: Date.now(), startTime: start.getTime(), endTime: end.getTime(), 
+        durationMs, earned, pauseMs, itemsCollected, note: finalNote, isHoliday: manualHoliday, type: shiftType 
+      });
     }
 
     if (newShifts.length > 0) setShifts([...newShifts, ...shifts].sort((a, b) => b.startTime - a.startTime));
     else alert(t('history.alerts.noWorkDays'));
     
     setIsManualEntryOpen(false);
-    setManualDate(''); setManualEndDate(''); setManualStartTime(''); setManualEndTime(''); setManualBreak(''); setManualNote(''); setManualHoliday(false); setShiftType('standard');
+    setManualDate(''); setManualEndDate(''); setManualStartTime(''); setManualEndTime(''); 
+    setManualBreak(''); setManualItems(''); setManualNote(''); setManualHoliday(false); setShiftType('standard');
   };
 
   const { currentMonthData, archiveMonths, currentYearEarned, currentYear } = useMemo(() => {
@@ -188,7 +199,10 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       if (!groups[key]) {
         let monthName = d.toLocaleDateString(i18n.language || 'ru-RU', { month: 'long', year: 'numeric' });
         monthName = monthName.charAt(0).toUpperCase() + monthName.slice(1).replace(' г.', '');
-        groups[key] = { id: key, label: monthName, sortValue: d.getTime(), shifts: [], earned: 0, totalDuration: 0, overtimeMs: 0, urlopDays: 0, l4Days: 0 };
+        groups[key] = { 
+          id: key, label: monthName, sortValue: d.getTime(), shifts: [], 
+          earned: 0, totalDuration: 0, overtimeMs: 0, urlopDays: 0, l4Days: 0, totalItems: 0 // Добавили totalItems
+        };
       }
       
       const isHol = shift.isHoliday === true || (typeof shift.note === 'string' && shift.note.includes('Праздник'));
@@ -210,6 +224,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
 
       groups[key].shifts.push(shift);
       groups[key].earned += safeEarned; 
+      groups[key].totalItems += (Number(shift.itemsCollected) || 0); // Считаем товары за месяц
       
       if (shiftYear === currentYear) {
         earnedThisYear += safeEarned;
@@ -222,7 +237,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
       groups[key].overtimeMs += shiftOvertime;
     });
 
-    const current = groups[currentKey] || { shifts: [], label: t('history.currentMonth'), earned: 0, totalDuration: 0, overtimeMs: 0, urlopDays: 0, l4Days: 0 }; 
+    const current = groups[currentKey] || { shifts: [], label: t('history.currentMonth'), earned: 0, totalDuration: 0, overtimeMs: 0, urlopDays: 0, l4Days: 0, totalItems: 0 }; 
     const archives = Object.values(groups).filter(g => g.id !== currentKey).sort((a, b) => b.sortValue - a.sortValue);
     
     return { currentMonthData: current, archiveMonths: archives, currentYearEarned: earnedThisYear, currentYear };
@@ -255,11 +270,17 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
           </div>
           
           <div className="flex gap-2 flex-col sm:flex-row">
-            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 sm:w-1/3">
-              <Coffee size={16} className="text-zinc-500 shrink-0" />
-              <input type="number" placeholder={t('history.edit.pause')} value={editBreak} onChange={(e) => setEditBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
+            <div className="flex gap-2 w-full sm:w-1/2">
+              <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1">
+                <Coffee size={16} className="text-zinc-500 shrink-0" />
+                <input type="number" placeholder={t('history.edit.pause')} value={editBreak} onChange={(e) => setEditBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
+              </div>
+              <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1">
+                <Package size={16} className="text-zinc-500 shrink-0" />
+                <input type="number" placeholder="Товары" value={editItems} onChange={(e) => setEditItems(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
+              </div>
             </div>
-            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1">
+            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 w-full sm:w-1/2">
               <MessageSquare size={16} className="text-zinc-500 shrink-0" />
               <input type="text" placeholder={t('history.edit.note')} value={editNote} onChange={(e) => setEditNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
             </div>
@@ -297,16 +318,25 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
 
         <div className="flex justify-between items-end">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center text-xs text-zinc-400 font-mono">
+            <div className="flex items-center text-xs text-zinc-400 font-mono flex-wrap gap-y-1">
               <span>{new Date(shift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
               <ArrowRight size={12} className="mx-1.5 text-zinc-600" />
               <span>{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              
               {shift.pauseMs > 0 && (
                 <span className="ml-2 pl-2 border-l border-white/10 text-zinc-500 flex items-center gap-1">
                   <Coffee size={10} /> {Math.round(shift.pauseMs / 60000)}{t('history.time.m')}
                 </span>
               )}
+
+              {/* НОВАЯ ФИШКА: Вывод товаров */}
+              {shift.itemsCollected > 0 && (
+                <span className="ml-2 pl-2 border-l border-white/10 text-indigo-400 flex items-center gap-1">
+                  <Package size={10} /> {shift.itemsCollected}
+                </span>
+              )}
             </div>
+            
             {shift.note && (
               <div className="flex items-center gap-1.5 text-zinc-500 text-xs mt-0.5">
                 <MessageSquare size={10} className="shrink-0" />
@@ -333,7 +363,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
   return (
     <div className="p-3 sm:p-5 h-full flex flex-col bg-black overflow-hidden">
       
-      {/* ИЗМЕНЕННАЯ ШАПКА */}
       <div className="relative mb-5 bg-zinc-900/60 p-5 rounded-[1.5rem] border border-white/10 overflow-hidden shrink-0 min-h-[125px] flex items-center justify-center transition-all duration-300">
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none"></div>
         
@@ -343,7 +372,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
             animate={{ opacity: 1, scale: 1 }} 
             className="relative z-10 flex items-center justify-between w-full gap-4"
           >
-            {/* Котик слева */}
             <div className="flex flex-col items-center justify-center shrink-0 pl-1">
               <img src={catSvg} alt="Cat" className="w-14 h-14 object-contain mb-1" />
               <span className="text-[9px] text-zinc-500 font-medium tracking-widest uppercase text-center bg-zinc-950/50 px-2.5 py-0.5 rounded-full border border-white/5">
@@ -351,9 +379,7 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
               </span>
             </div>
 
-            {/* Прогресс-бар справа */}
             <div className="flex-1 flex flex-col justify-center pr-1">
-              
               <div className="flex justify-between items-end mb-2">
                 <div className="flex flex-col">
                   <span className="text-[9px] text-zinc-400 font-medium uppercase tracking-widest">
@@ -377,7 +403,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                 </div>
               </div>
 
-              {/* Полоса прогресса */}
               <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-white/5 relative">
                 <div
                   className={cn(
@@ -392,11 +417,9 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                 <span className="text-[8px] text-zinc-600 font-mono">0</span>
                 <span className="text-[8px] text-zinc-600 font-mono">30 000</span>
               </div>
-              
             </div>
           </motion.div>
         ) : (
-          // СТАНДАРТНАЯ ШАПКА СО СТАТИСТИКОЙ МЕСЯЦА
           <div className="relative z-10 w-full animate-in fade-in zoom-in-95 duration-300">
             <div className="flex justify-between items-center">
               <div className="flex flex-col gap-0.5">
@@ -424,16 +447,21 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
               />
             </div>
 
-            <div className="relative z-10 mt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-
-              {/* УБРАН БЕЙДЖ РАБОЧИХ ДНЕЙ */}
-
+            <div className="relative z-10 mt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
               <div className="flex items-center gap-1 text-[9px] font-semibold text-zinc-400 bg-black/40 border border-white/5 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
                 <Clock size={10} className="text-zinc-500 shrink-0" />
                 <span className="uppercase tracking-wider mt-0.5">
-                  {t('history.badges.total')} <span className="text-white font-mono ml-0.5">{formatTime(displayStats.totalDuration)}</span>
+                  <span className="text-white font-mono ml-0.5">{formatTime(displayStats.totalDuration)}</span>
                 </span>
               </div>
+
+              {/* НОВАЯ ФИШКА: Тотал товаров за месяц */}
+              {displayStats.totalItems > 0 && (
+                <div className="flex items-center gap-1 text-[9px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
+                  <Package size={10} className="shrink-0" />
+                  <span className="font-mono mt-0.5">{displayStats.totalItems}</span>
+                </div>
+              )}
 
               {showBadges && (
                 <div className="flex items-center gap-1 text-[9px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg backdrop-blur-md whitespace-nowrap">
@@ -462,7 +490,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
         )}
       </div>
 
-      {/* Компактные табы */}
       <div className="flex bg-zinc-900 p-1 rounded-xl mb-4 border border-white/5 shrink-0">
         <button 
           onClick={() => { setActiveTab('current'); setExpandedArchive(null); }} 
@@ -478,7 +505,6 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
         </button>
       </div>
 
-      {/* Контейнер списков */}
       <div className="flex-1 min-h-0 flex flex-col relative overflow-hidden">
         {activeTab === 'current' && (
           <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex-1 min-h-0 flex flex-col">
@@ -558,8 +584,20 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                           </div>
                           
                           <div className="flex gap-2 flex-col sm:flex-row">
-                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 sm:w-1/3"><Coffee size={14} className="text-zinc-500 shrink-0" /><input type="number" placeholder={t('history.manual.pause')} value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" /></div>
-                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1"><MessageSquare size={14} className="text-zinc-500 shrink-0" /><input type="text" placeholder={t('history.manual.noteOptional')} value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" /></div>
+                            <div className="flex gap-2 w-full sm:w-1/2">
+                              <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1">
+                                <Coffee size={14} className="text-zinc-500 shrink-0" />
+                                <input type="number" placeholder={t('history.manual.pause')} value={manualBreak} onChange={(e) => setManualBreak(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
+                              </div>
+                              <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 flex-1">
+                                <Package size={14} className="text-zinc-500 shrink-0" />
+                                <input type="number" placeholder="Товары" value={manualItems} onChange={(e) => setManualItems(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 w-full sm:w-1/2">
+                              <MessageSquare size={14} className="text-zinc-500 shrink-0" />
+                              <input type="text" placeholder={t('history.manual.noteOptional')} value={manualNote} onChange={(e) => setManualNote(e.target.value)} className="bg-transparent text-white focus:outline-none w-full text-sm placeholder:text-zinc-600" />
+                            </div>
                           </div>
                           {contractType === 'oprace' && (
                             <button onClick={() => setManualHoliday(!manualHoliday)} className={cn("w-full py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 border mt-1", manualHoliday ? "bg-amber-500 text-black border-amber-500" : "bg-transparent text-zinc-400 border-zinc-800")}><Gift size={14} /> {t('history.manual.holidayRate')}</button>
@@ -598,6 +636,15 @@ export default function History({ shifts, setShifts, hourlyRate, currency, contr
                             <span className="text-emerald-400">{currency}{(Number(month.earned) || 0).toFixed(2)}</span>
                             <span className="text-zinc-500">•</span>
                             <span className="text-zinc-400 font-mono">{formatTime(month.totalDuration)}</span>
+                            {/* Вывод количества товаров в архиве */}
+                            {month.totalItems > 0 && (
+                              <>
+                                <span className="text-zinc-500">•</span>
+                                <span className="text-indigo-400 font-mono flex items-center gap-1">
+                                  <Package size={10}/> {month.totalItems}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
