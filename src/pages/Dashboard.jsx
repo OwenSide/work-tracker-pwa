@@ -7,12 +7,16 @@ import NormCounter from '../components/NormCounter';
 import { getShiftDetails } from '../utils/salary';
 import { cn } from '../utils/utils';
 
-export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, isNormsEnabled, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
+export default function Dashboard({ 
+  activeShift, startShift, stopShift, togglePause, elapsed, 
+  contractType, hourlyRate, monthlyRate, taxStatus, currency, 
+  isNormsEnabled, setActiveShift 
+}) {
   const { t } = useTranslation();
   const [isHolidaySelection, setIsHolidaySelection] = useState(false);
   const [tick, setTick] = useState(0); 
   
-  // --- СОСТОЯНИЯ ДЛЯ НОРМЫ (Теперь с непробиваемой памятью!) ---
+  // --- СОСТОЯНИЯ ДЛЯ НОРМЫ ---
   const [clicksCount, setClicksCount] = useState(() => {
     const saved = localStorage.getItem('currentShiftClicks');
     return saved ? JSON.parse(saved) : 0;
@@ -22,7 +26,13 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Автоматически сохраняем каждый клик, чтобы не потерять при переключении вкладок
+  // --- ИНЛАЙН РЕДАКТИРОВАНИЕ ВРЕМЕНИ ---
+  const [isEditingStart, setIsEditingStart] = useState(false);
+  const [editStartVal, setEditStartVal] = useState('');
+  
+  const [isEditingPause, setIsEditingPause] = useState(false);
+  const [editPauseVal, setEditPauseVal] = useState('');
+
   useEffect(() => {
     localStorage.setItem('currentShiftClicks', JSON.stringify(clicksCount));
   }, [clicksCount]);
@@ -30,7 +40,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
   useEffect(() => {
     localStorage.setItem('currentShiftHistory', JSON.stringify(clicksHistory));
   }, [clicksHistory]);
-  // ---------------------------
 
   const trackRef = useRef(null);
   const controls = useAnimation();
@@ -44,6 +53,56 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
     }
     return () => clearInterval(interval);
   }, [activeShift]);
+
+  // --- ЛОГИКА СОХРАНЕНИЯ ОТРЕДАКТИРОВАННОГО ВРЕМЕНИ ---
+  
+  // СТАРТ (Только Часы:Минуты)
+  const handleStartClick = () => {
+    if (!activeShift) return;
+    const d = new Date(activeShift.startTime);
+    setEditStartVal(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+    setIsEditingStart(true);
+  };
+
+  const handleSaveStart = () => {
+    setIsEditingStart(false);
+    if (!editStartVal || !setActiveShift) return;
+    const [h, m] = editStartVal.split(':').map(Number);
+    const d = new Date(activeShift.startTime);
+    d.setHours(h, m, 0, 0);
+    setActiveShift({ ...activeShift, startTime: d.getTime() });
+  };
+
+  // ПАУЗА (Часы:Минуты:СЕКУНДЫ)
+  const handlePauseClick = () => {
+    if (!activeShift) return;
+    let currentPauseMs = activeShift.totalPauseTime || 0;
+    if (activeShift.isPaused) {
+      currentPauseMs += (Date.now() - activeShift.pauseStartTime);
+    }
+    const h = String(Math.floor(currentPauseMs / 3600000)).padStart(2, '0');
+    const m = String(Math.floor((currentPauseMs % 3600000) / 60000)).padStart(2, '0');
+    const s = String(Math.floor((currentPauseMs % 60000) / 1000)).padStart(2, '0');
+    
+    setEditPauseVal(`${h}:${m}:${s}`); // Учитываем секунды
+    setIsEditingPause(true);
+  };
+
+  const handleSavePause = () => {
+    setIsEditingPause(false);
+    if (!editPauseVal || !setActiveShift) return;
+    
+    // Безопасно разбиваем строку, даже если там нет секунд
+    const [h = 0, m = 0, s = 0] = editPauseVal.split(':').map(Number);
+    const newPauseMs = (h * 3600 + m * 60 + s) * 1000; // Добавили секунды в расчет
+    
+    setActiveShift({
+      ...activeShift,
+      totalPauseTime: newPauseMs,
+      pauseStartTime: activeShift.isPaused ? Date.now() : activeShift.pauseStartTime
+    });
+  };
+  // ----------------------------------------------------
 
   const shiftData = useMemo(() => {
     if (!activeShift) return { earned: 0, isHoliday: false, isWeekend: false, isOvertime: false, overtimeMs: 0, nightMs: 0 };
@@ -63,7 +122,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
   };
 
   const handleStartShift = () => {
-    // При старте новой смены 100% очищаем старую память
     setClicksCount(0);
     setClicksHistory([]);
     localStorage.removeItem('currentShiftClicks');
@@ -80,7 +138,6 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
       await controls.start({ x: trackWidth - sliderWidth - 12, transition: { duration: 0.2 } });
       controls.set({ x: 0 });
       
-      // Смена закончена - передаем норму в Архив и очищаем локальную память
       stopShift(clicksCount); 
       localStorage.removeItem('currentShiftClicks');
       localStorage.removeItem('currentShiftHistory');
@@ -179,39 +236,62 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
                     <span className={cn("text-4xl font-bold transition-colors duration-500", shiftData.isHoliday ? "text-amber-300" : shiftData.isWeekend ? "text-cyan-300" : shiftData.isOvertime ? "text-emerald-300" : "text-indigo-300")}>{s}</span>
                   </div>
                 </div>
-                
-                <AnimatePresence>
-                  {shiftData.overtimeMs > 0 && (
-                    <motion.div initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: 'auto', marginTop: 12 }} exit={{ opacity: 0, height: 0, marginTop: 0 }} className="flex flex-col items-center overflow-hidden">
-                      <div className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest bg-black/20 backdrop-blur-md", shiftData.isHoliday ? "border-amber-500/30 text-amber-300" : shiftData.isWeekend ? "border-cyan-500/30 text-cyan-300" : "border-emerald-500/30 text-emerald-300")}>
-                        {shiftData.isHoliday ? <Gift size={12} /> : shiftData.isWeekend ? <Sun size={12} /> : <Flame size={12} />}
-                        <span className="tabular-nums">{ot.h}:{ot.m}:{ot.s}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <AnimatePresence>
-                  {isNightTime && (
-                    <motion.div initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: 'auto', marginTop: 6 }} exit={{ opacity: 0, height: 0, marginTop: 0 }} className="flex flex-col items-center overflow-hidden">
-                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest bg-black/20 backdrop-blur-md border-blue-500/30 text-blue-300">
-                        <Moon size={12} />
-                        <span className="tabular-nums">{t('dashboard.nightHours')}: {nt.h}:{nt.m}:{nt.s}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             )}
           </div>
         </div>
 
+        {/* ОБНОВЛЕННАЯ ПРЕМИУМ-КАПСУЛА ИНФО */}
         <AnimatePresence>
           {activeShift && (
-            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="flex items-center justify-center gap-5 bg-zinc-900/60 border border-white/5 backdrop-blur-md rounded-full px-6 py-2.5 mt-5 shadow-lg z-20 w-auto min-w-[200px]">
-              <div className="flex items-center gap-2 text-zinc-400"><Clock size={14} className="text-zinc-500"/><span className="font-mono text-xs font-medium">{startStr}</span></div>
+            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="flex items-center justify-center gap-4 sm:gap-5 bg-zinc-900/60 border border-white/5 backdrop-blur-md rounded-full px-5 py-2.5 mt-5 shadow-lg z-20 w-auto min-w-[200px]">
+              
+              {/* РЕДАКТИРУЕМОЕ ВРЕМЯ СТАРТА */}
+              <div 
+                onClick={!isEditingStart ? handleStartClick : undefined}
+                className="flex items-center gap-2 text-zinc-400 cursor-pointer hover:text-white transition-colors group"
+              >
+                <Clock size={14} className={cn("transition-colors", isEditingStart ? "text-indigo-400" : "text-zinc-500 group-hover:text-zinc-400")}/>
+                {isEditingStart ? (
+                  <input 
+                    type="time" 
+                    autoFocus
+                    value={editStartVal}
+                    onChange={(e) => setEditStartVal(e.target.value)}
+                    onBlur={handleSaveStart}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveStart()}
+                    // ИЗМЕНЕНО: [&::-webkit-calendar-picker-indicator]:hidden убирает иконку часов браузера
+                    className="bg-black/60 border border-indigo-500/50 rounded text-white font-mono text-sm w-[76px] text-center focus:outline-none focus:border-indigo-400 shadow-inner appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-clear-button]:hidden"
+                  />
+                ) : (
+                  <span className="font-mono text-xs font-medium" title="Изменить время старта">{startStr}</span>
+                )}
+              </div>
+
               <span className={cn("text-xs transition-colors duration-500", isPaused ? "text-amber-400" : "text-zinc-700/50")}>•</span>
-              <div className={cn("flex items-center gap-2 transition-colors", isPaused ? "text-amber-400" : "text-zinc-400")}><Coffee size={14} className={isPaused ? "animate-pulse" : "text-zinc-500"}/><span className="font-mono text-xs font-medium tabular-nums">{pauseStr}</span></div>
+              
+              {/* РЕДАКТИРУЕМОЕ ВРЕМЯ ПАУЗЫ */}
+              <div 
+                onClick={!isEditingPause ? handlePauseClick : undefined}
+                className={cn("flex items-center gap-2 transition-colors cursor-pointer group", isPaused ? "text-amber-400 hover:text-amber-300" : "text-zinc-400 hover:text-white")}
+              >
+                <Coffee size={14} className={cn(isPaused ? "animate-pulse" : "text-zinc-500 group-hover:text-zinc-400", isEditingPause && "text-indigo-400")}/>
+                {isEditingPause ? (
+                  <input 
+                    type="time" 
+                    step="1" 
+                    autoFocus
+                    value={editPauseVal}
+                    onChange={(e) => setEditPauseVal(e.target.value)}
+                    onBlur={handleSavePause}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSavePause()}
+                    className="bg-black/60 border border-indigo-500/50 rounded text-white font-mono text-sm w-[96px] text-center focus:outline-none focus:border-indigo-400 shadow-inner appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-clear-button]:hidden"
+                  />
+                ) : (
+                  <span className="font-mono text-xs font-medium tabular-nums" title="Изменить время паузы">{pauseStr}</span>
+                )}
+              </div>
+
             </motion.div>
           )}
         </AnimatePresence>
