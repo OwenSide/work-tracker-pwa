@@ -188,7 +188,7 @@ export default function Dashboard({
         )}
       </AnimatePresence>
 
-      <div className="w-full flex justify-center z-20 h-10 mb-2 mt-4 min-h-[40px]">
+      <div className="w-full flex justify-center z-20 h-10 mb-8 mt-2 min-h-[40px]">
         <AnimatePresence mode="wait">
           {shiftData.isHoliday && <motion.div key="holiday" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full backdrop-blur-md bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[inset_0_1px_8px_rgba(245,158,11,0.3),0_10px_20px_rgba(0,0,0,0.5)]"><Gift size={16}/> {t('dashboard.holidayRate', 'ПРАЗДНИК')}</motion.div>}
           {!shiftData.isHoliday && shiftData.isWeekend && <motion.div key="weekend" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-5 py-2 rounded-full backdrop-blur-md bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[inset_0_1px_8px_rgba(6,182,212,0.3),0_10px_20px_rgba(0,0,0,0.5)]"><Sun size={16}/> {t('dashboard.weekendRate', 'ВЫХОДНОЙ')}</motion.div>}
