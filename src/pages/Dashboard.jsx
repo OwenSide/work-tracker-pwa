@@ -73,7 +73,7 @@ export default function Dashboard({
     setActiveShift({ ...activeShift, startTime: d.getTime() });
   };
 
-  // ПАУЗА (Часы:Минуты:СЕКУНДЫ)
+  // ПАУЗА (Только Часы:Минуты)
   const handlePauseClick = () => {
     if (!activeShift) return;
     let currentPauseMs = activeShift.totalPauseTime || 0;
@@ -82,9 +82,9 @@ export default function Dashboard({
     }
     const h = String(Math.floor(currentPauseMs / 3600000)).padStart(2, '0');
     const m = String(Math.floor((currentPauseMs % 3600000) / 60000)).padStart(2, '0');
-    const s = String(Math.floor((currentPauseMs % 60000) / 1000)).padStart(2, '0');
     
-    setEditPauseVal(`${h}:${m}:${s}`); // Учитываем секунды
+    // Передаем только часы и минуты
+    setEditPauseVal(`${h}:${m}`);
     setIsEditingPause(true);
   };
 
@@ -92,9 +92,9 @@ export default function Dashboard({
     setIsEditingPause(false);
     if (!editPauseVal || !setActiveShift) return;
     
-    // Безопасно разбиваем строку, даже если там нет секунд
-    const [h = 0, m = 0, s = 0] = editPauseVal.split(':').map(Number);
-    const newPauseMs = (h * 3600 + m * 60 + s) * 1000; // Добавили секунды в расчет
+    // Секунды при ручном вводе просто обнуляются
+    const [h = 0, m = 0] = editPauseVal.split(':').map(Number);
+    const newPauseMs = (h * 3600 + m * 60) * 1000; 
     
     setActiveShift({
       ...activeShift,
@@ -244,52 +244,57 @@ export default function Dashboard({
         {/* ОБНОВЛЕННАЯ ПРЕМИУМ-КАПСУЛА ИНФО */}
         <AnimatePresence>
           {activeShift && (
-            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="flex items-center justify-center gap-4 sm:gap-5 bg-zinc-900/60 border border-white/5 backdrop-blur-md rounded-full px-5 py-2.5 mt-5 shadow-lg z-20 w-auto min-w-[200px]">
+            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="flex items-center justify-center gap-4 bg-zinc-900/60 border border-white/5 backdrop-blur-md rounded-full px-5 py-2.5 mt-5 shadow-lg z-20 w-auto min-w-[200px]">
               
               {/* РЕДАКТИРУЕМОЕ ВРЕМЯ СТАРТА */}
               <div 
                 onClick={!isEditingStart ? handleStartClick : undefined}
                 className="flex items-center gap-2 text-zinc-400 cursor-pointer hover:text-white transition-colors group"
               >
-                <Clock size={14} className={cn("transition-colors", isEditingStart ? "text-indigo-400" : "text-zinc-500 group-hover:text-zinc-400")}/>
-                {isEditingStart ? (
-                  <input 
-                    type="time" 
-                    autoFocus
-                    value={editStartVal}
-                    onChange={(e) => setEditStartVal(e.target.value)}
-                    onBlur={handleSaveStart}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSaveStart()}
-                    // ИЗМЕНЕНО: [&::-webkit-calendar-picker-indicator]:hidden убирает иконку часов браузера
-                    className="bg-black/60 border border-indigo-500/50 rounded text-white font-mono text-sm w-[76px] text-center focus:outline-none focus:border-indigo-400 shadow-inner appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-clear-button]:hidden"
-                  />
-                ) : (
-                  <span className="font-mono text-xs font-medium" title="Изменить время старта">{startStr}</span>
-                )}
+                <Clock size={14} className={cn("transition-colors shrink-0", isEditingStart ? "text-indigo-400" : "text-zinc-500 group-hover:text-zinc-400")}/>
+                {/* Фиксируем ширину контейнера, чтобы избежать прыжков */}
+                <div className="w-[46px] flex items-center justify-center">
+                  {isEditingStart ? (
+                    <input 
+                      type="time" 
+                      autoFocus
+                      value={editStartVal}
+                      onChange={(e) => setEditStartVal(e.target.value)}
+                      onBlur={handleSaveStart}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveStart()}
+                      className="bg-black/60 border border-indigo-500/50 rounded text-white font-mono text-xs w-full text-center focus:outline-none focus:border-indigo-400 shadow-inner appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-clear-button]:hidden p-0 m-0 leading-none"
+                    />
+                  ) : (
+                    <span className="font-mono text-xs font-medium tabular-nums" title="Изменить время старта">{startStr}</span>
+                  )}
+                </div>
               </div>
 
-              <span className={cn("text-xs transition-colors duration-500", isPaused ? "text-amber-400" : "text-zinc-700/50")}>•</span>
+              <span className={cn("text-xs transition-colors duration-500 shrink-0", isPaused ? "text-amber-400" : "text-zinc-700/50")}>•</span>
               
               {/* РЕДАКТИРУЕМОЕ ВРЕМЯ ПАУЗЫ */}
               <div 
                 onClick={!isEditingPause ? handlePauseClick : undefined}
                 className={cn("flex items-center gap-2 transition-colors cursor-pointer group", isPaused ? "text-amber-400 hover:text-amber-300" : "text-zinc-400 hover:text-white")}
               >
-                <Coffee size={14} className={cn(isPaused ? "animate-pulse" : "text-zinc-500 group-hover:text-zinc-400", isEditingPause && "text-indigo-400")}/>
-                {isEditingPause ? (
-                  <input 
-                    type="time" 
-                    step="1" 
-                    autoFocus
-                    value={editPauseVal}
-                    onChange={(e) => setEditPauseVal(e.target.value)}
-                    onBlur={handleSavePause}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSavePause()}
-                    className="bg-black/60 border border-indigo-500/50 rounded text-white font-mono text-sm w-[96px] text-center focus:outline-none focus:border-indigo-400 shadow-inner appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-clear-button]:hidden"
-                  />
-                ) : (
-                  <span className="font-mono text-xs font-medium tabular-nums" title="Изменить время паузы">{pauseStr}</span>
-                )}
+                <Coffee size={14} className={cn("shrink-0", isPaused ? "animate-pulse" : "text-zinc-500 group-hover:text-zinc-400", isEditingPause && "text-indigo-400")}/>
+                {/* Вернули ширину 46px как у времени старта */}
+                <div className="w-[46px] flex items-center justify-center">
+                  {isEditingPause ? (
+                    <input 
+                      type="time" 
+                      // step="1" удален, чтобы iOS и десктоп показывали аккуратный выбор только часов и минут
+                      autoFocus
+                      value={editPauseVal}
+                      onChange={(e) => setEditPauseVal(e.target.value)}
+                      onBlur={handleSavePause}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSavePause()}
+                      className="bg-black/60 border border-indigo-500/50 rounded text-white font-mono text-xs w-full text-center focus:outline-none focus:border-indigo-400 shadow-inner appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-clear-button]:hidden p-0 m-0 leading-none"
+                    />
+                  ) : (
+                    <span className="font-mono text-xs font-medium tabular-nums" title="Изменить время паузы">{pauseStr}</span>
+                  )}
+                </div>
               </div>
 
             </motion.div>
