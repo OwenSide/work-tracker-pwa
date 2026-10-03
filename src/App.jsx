@@ -16,6 +16,7 @@ export default function App() {
   const [elapsed, setElapsed] = useState(0);
 
   const [contractType, setContractType, contractLoaded] = useIndexedDB('contractType', 'zlecenie'); 
+  const [isNormsEnabled, setIsNormsEnabled, normsLoaded] = useIndexedDB('isNormsEnabled', false); 
   const [hourlyRate, setHourlyRate, rateLoaded] = useIndexedDB('hourlyRate', '28.10'); 
   const [monthlyRate, setMonthlyRate, monthlyLoaded] = useIndexedDB('monthlyRate', '4300'); 
   const [taxStatus, setTaxStatus, taxLoaded] = useIndexedDB('taxStatus', 'standard'); 
@@ -119,9 +120,9 @@ export default function App() {
       <main className="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.02] via-[#030303] to-[#030303]">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.2 }} className="h-full w-full absolute inset-0">
-            {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} startShift={startShift} stopShift={stopShift} togglePause={togglePause} elapsed={elapsed} contractType={contractType} hourlyRate={hourlyRate} monthlyRate={monthlyRate} taxStatus={taxStatus} currency="zł" />}
+            {activeTab === 'dashboard' && <Dashboard activeShift={activeShift} isNormsEnabled={isNormsEnabled} startShift={startShift} stopShift={stopShift} togglePause={togglePause} elapsed={elapsed} contractType={contractType} hourlyRate={hourlyRate} monthlyRate={monthlyRate} taxStatus={taxStatus} currency="zł" />}
             {activeTab === 'history' && <History shifts={shifts} setShifts={setShifts} hourlyRate={hourlyRate} currency="zł" contractType={contractType} monthlyRate={monthlyRate} taxStatus={taxStatus} />}
-            {activeTab === 'settings' && <Settings contractType={contractType} setContractType={setContractType} hourlyRate={hourlyRate} setHourlyRate={setHourlyRate} monthlyRate={monthlyRate} setMonthlyRate={setMonthlyRate} taxStatus={taxStatus} setTaxStatus={setTaxStatus} shifts={shifts} setShifts={setShifts} />}
+            {activeTab === 'settings' && <Settings contractType={contractType} isNormsEnabled={isNormsEnabled} setIsNormsEnabled={setIsNormsEnabled} setContractType={setContractType} hourlyRate={hourlyRate} setHourlyRate={setHourlyRate} monthlyRate={monthlyRate} setMonthlyRate={setMonthlyRate} taxStatus={taxStatus} setTaxStatus={setTaxStatus} shifts={shifts} setShifts={setShifts} />}
           </motion.div>
         </AnimatePresence>
       </main>

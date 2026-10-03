@@ -20,6 +20,9 @@
     "clearTitle": "Clear Data",
     "clearDesc": "Irreversible deletion",
     "dataStoredLocally": "All data is stored locally on your device",
+    "features": "Additional Features",
+    "enableNorms": "Item Counter",
+    "enableNormsDesc": "Panel on the main dashboard",
     "alerts": {
       "noDataExport": "No data to export. Add at least one shift.",
       "invalidFormat": "Invalid file format.",

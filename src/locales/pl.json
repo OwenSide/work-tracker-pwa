@@ -20,6 +20,9 @@
     "clearTitle": "Wyczyść dane",
     "clearDesc": "Nieodwracalne usunięcie",
     "dataStoredLocally": "Wszystkie dane są przechowywane tylko na twoim urządzeniu",
+    "features": "Opcje dodatkowe",
+    "enableNorms": "Licznik normy",
+    "enableNormsDesc": "Panel na ekranie głównym",
     "alerts": {
       "noDataExport": "Brak danych do eksportu. Dodaj przynajmniej jedną zmianę.",
       "invalidFormat": "Nieprawidłowy format pliku.",

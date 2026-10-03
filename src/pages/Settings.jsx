@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, AlertTriangle, FileCode, Upload, Briefcase, GraduationCap, User, Settings as SettingsIcon, ShieldCheck, ChevronDown } from 'lucide-react';
+import { Download, Trash2, AlertTriangle, FileCode, Upload, Briefcase, GraduationCap, User, Settings as SettingsIcon, ShieldCheck, ChevronDown, Package } from 'lucide-react';
 import { cn } from '../utils/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import PrankIcon from '../components/PrankIcon';
@@ -10,7 +10,8 @@ export default function Settings({
   hourlyRate, setHourlyRate, 
   monthlyRate, setMonthlyRate, 
   taxStatus, setTaxStatus, 
-  shifts, setShifts 
+  shifts, setShifts,
+  isNormsEnabled, setIsNormsEnabled // <--- ДОБАВИЛИ ПРОПСЫ ДЛЯ НОРМЫ
 }) {
   const { t, i18n } = useTranslation();
   const fileInputRef = useRef(null);
@@ -216,12 +217,12 @@ export default function Settings({
           )}
         </div>
 
-        {/* Блок: Выбор языка (Дропдаун) */}
+
+        {/* Блок: Выбор языка */}
         <div className="bg-zinc-900/60 p-5 rounded-[1.5rem] border border-white/[0.04] backdrop-blur-md relative z-50">
           <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mb-3 ml-1">
             {t('settings.language')}
           </label>
-          
           <div className="relative">
             <button 
               onClick={() => setIsLangOpen(!isLangOpen)}
@@ -235,10 +236,7 @@ export default function Settings({
                   { code: 'en', label: 'English' }
                 ].find(l => i18n.language?.startsWith(l.code))?.label || 'Русский'}
               </span>
-              <ChevronDown 
-                size={18} 
-                className={cn("text-zinc-500 transition-transform duration-300", isLangOpen && "rotate-180")} 
-              />
+              <ChevronDown size={18} className={cn("text-zinc-500 transition-transform duration-300", isLangOpen && "rotate-180")} />
             </button>
 
             <AnimatePresence>
@@ -266,9 +264,7 @@ export default function Settings({
                         }}
                         className={cn(
                           "w-full text-left px-5 py-3.5 text-sm transition-colors border-b border-white/[0.02] last:border-0",
-                          isActive
-                            ? "bg-white/10 text-white font-medium"
-                            : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+                          isActive ? "bg-white/10 text-white font-medium" : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
                         )}
                       >
                         {lang.label}
@@ -281,12 +277,37 @@ export default function Settings({
           </div>
         </div>
 
+        {/* НОВЫЙ БЛОК: ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ (ВКЛ/ВЫКЛ НОРМЫ) */}
+        <div className="bg-zinc-900/60 p-5 rounded-[1.5rem] border border-white/[0.04] backdrop-blur-md">
+          <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mb-3 ml-1">
+            {t('settings.features', 'Дополнительно')}
+          </label>
+          <div className="flex items-center justify-between bg-zinc-950 p-4 rounded-2xl border border-white/5 cursor-pointer" onClick={() => setIsNormsEnabled(!isNormsEnabled)}>
+            <div className="flex items-center gap-3">
+              <div className={cn("p-2 rounded-xl transition-colors duration-300", isNormsEnabled ? "bg-indigo-500/20 text-indigo-400" : "bg-zinc-800 text-zinc-500")}>
+                <Package size={18} />
+              </div>
+              <div className="flex flex-col">
+                <span className={cn("text-sm font-medium transition-colors", isNormsEnabled ? "text-zinc-200" : "text-zinc-400")}>
+                  {t('settings.enableNorms', 'Счетчик нормы')}
+                </span>
+                <span className="text-xs text-zinc-500 font-light mt-0.5">
+                  {t('settings.enableNormsDesc', 'Панель на главном экране')}
+                </span>
+              </div>
+            </div>
+            
+            {/* Тумблер */}
+            <div className={cn("relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 shrink-0 border", isNormsEnabled ? "bg-indigo-500 border-indigo-400" : "bg-zinc-800 border-zinc-700")}>
+              <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-sm", isNormsEnabled ? "translate-x-6" : "translate-x-1")} />
+            </div>
+          </div>
+        </div>
+
         {/* Блок: Управление данными */}
         <div className="mb-2">
           <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mb-2 ml-3">{t('settings.backup')}</label>
           <div className="bg-zinc-900/60 rounded-[1.5rem] border border-white/[0.04] backdrop-blur-md overflow-hidden flex flex-col">
-            
-            {/* Экспорт */}
             <button onClick={handleExportJSON} className="flex items-center justify-between p-4 bg-transparent hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] group text-left">
               <div className="flex items-center gap-4">
                 <div className="bg-zinc-800 p-2.5 rounded-xl group-hover:bg-zinc-700 transition-colors">
@@ -299,8 +320,6 @@ export default function Settings({
               </div>
               <FileCode size={18} className="text-zinc-600" />
             </button>
-            
-            {/* Импорт */}
             <input type="file" accept=".json" ref={fileInputRef} onChange={handleImportFile} className="hidden" />
             <button onClick={handleImportClick} className="flex items-center justify-between p-4 bg-transparent hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] group text-left">
               <div className="flex items-center gap-4">
@@ -314,8 +333,6 @@ export default function Settings({
               </div>
               <FileCode size={18} className="text-zinc-600" />
             </button>
-
-            {/* Очистка данных */}
             <button onClick={handleClearData} className="flex items-center justify-between p-4 bg-transparent hover:bg-rose-500/5 transition-colors group text-left">
               <div className="flex items-center gap-4">
                 <div className="bg-rose-500/10 p-2.5 rounded-xl group-hover:bg-rose-500/20 transition-colors">
@@ -327,7 +344,6 @@ export default function Settings({
                 </div>
               </div>
             </button>
-
           </div>
         </div>
 

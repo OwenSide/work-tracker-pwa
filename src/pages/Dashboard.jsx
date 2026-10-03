@@ -7,7 +7,7 @@ import NormCounter from '../components/NormCounter';
 import { getShiftDetails } from '../utils/salary';
 import { cn } from '../utils/utils';
 
-export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
+export default function Dashboard({ activeShift, startShift, stopShift, togglePause, elapsed, isNormsEnabled, contractType, hourlyRate, monthlyRate, taxStatus, currency }) {
   const { t } = useTranslation();
   const [isHolidaySelection, setIsHolidaySelection] = useState(false);
   const [tick, setTick] = useState(0); 
@@ -218,7 +218,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
       </motion.div>
 
       {/* НИЖНИЙ КОНТЕЙНЕР (Кнопки Старт/Стоп и под ними наш NormCounter) */}
-      <div className="w-full max-w-sm flex flex-col gap-3 mt-auto z-20">
+      <div className="w-full max-w-sm flex flex-col gap-3 mt-10 z-20">
         
         {/* КНОПКИ СТАРТ / СТОП / ПАУЗА */}
         <div className="flex gap-3 w-full">
@@ -248,7 +248,7 @@ export default function Dashboard({ activeShift, startShift, stopShift, togglePa
 
         {/* НАШ ИДЕАЛЬНЫЙ СЧЕТЧИК С ИСТОРИЕЙ */}
         <AnimatePresence>
-          {activeShift && (
+          {activeShift && isNormsEnabled && (
             <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}>
               <NormCounter 
                 total={clicksCount} 
