@@ -10,7 +10,6 @@ export default function PrankIcon({
 }) {
   const [clicks, setClicks] = useState(0);
   const [showMsg, setShowMsg] = useState(false);
-  // Добавим "умные" координаты для позиционирования
   const [coords, setCoords] = useState({ top: 0, left: 'auto', right: 'auto', isRightSide: true });
   
   const timerRef = useRef(null);
@@ -25,11 +24,11 @@ export default function PrankIcon({
     
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      // Проверяем, в какой половине экрана находится кнопка
       const isRight = rect.left > window.innerWidth / 2;
       
       setCoords({
-        top: rect.top, 
+        // Берем НИЖНЮЮ границу кнопки, чтобы тултип был под ней
+        top: rect.bottom, 
         left: isRight ? 'auto' : rect.left,
         right: isRight ? window.innerWidth - rect.right : 'auto',
         isRightSide: isRight
@@ -76,23 +75,28 @@ export default function PrankIcon({
           {showMsg && clicks > 0 && (
             <motion.div
               key="prank-tooltip"
-              initial={{ opacity: 0, y: 10, scale: 0.8 }}
-              animate={{ opacity: 1, y: -45, scale: 1 }} // Убрали x: '-50%'
-              exit={{ opacity: 0, y: -35, scale: 0.8 }}
+              initial={{ opacity: 0, y: -5, scale: 0.8 }}
+              // Анимируем движение ВНИЗ (в плюс)
+              animate={{ opacity: 1, y: 12, scale: 1 }} 
+              exit={{ opacity: 0, y: 0, scale: 0.8 }}
               style={{
                 position: 'fixed',
                 top: coords.top,
                 left: coords.left,
-                right: coords.right, // Тултип цепляется за правильный край
+                right: coords.right,
                 zIndex: 999999,
-                transformOrigin: coords.isRightSide ? 'bottom right' : 'bottom left' // Анимация растет из кнопки
+                // Точка роста анимации теперь СВЕРХУ (top)
+                transformOrigin: coords.isRightSide ? 'top right' : 'top left',
+                // Фикс мыла шрифтов на iOS:
+                WebkitFontSmoothing: 'antialiased',
+                transformStyle: 'preserve-3d'
               }}
               className="whitespace-nowrap bg-indigo-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-2xl pointer-events-none"
             >
               {currentMsg}
-              {/* Хвостик динамически смещается в зависимости от того, где иконка */}
+              {/* Хвостик теперь СВЕРХУ (-top-1) */}
               <div className={cn(
-                "absolute -bottom-1 w-2 h-2 bg-indigo-500 rotate-45",
+                "absolute -top-1 w-2 h-2 bg-indigo-500 rotate-45",
                 coords.isRightSide ? "right-[18px]" : "left-[18px]"
               )}></div>
             </motion.div>
